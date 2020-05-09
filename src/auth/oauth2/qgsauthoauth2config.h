@@ -34,6 +34,8 @@ class QgsAuthOAuth2Config : public QObject
     Q_ENUMS( GrantFlow )
     Q_ENUMS( ConfigFormat )
     Q_ENUMS( AccessMethod )
+    Q_ENUMS( GrantType )
+    Q_ENUMS( TokenAuth )
     Q_PROPERTY( QString id READ id WRITE setId NOTIFY idChanged )
     Q_PROPERTY( int version READ version WRITE setVersion NOTIFY versionChanged )
     Q_PROPERTY( ConfigType configType READ configType WRITE setConfigType NOTIFY configTypeChanged )
@@ -53,6 +55,8 @@ class QgsAuthOAuth2Config : public QObject
     Q_PROPERTY( QString apiKey READ apiKey WRITE setApiKey NOTIFY apiKeyChanged )
     Q_PROPERTY( bool persistToken READ persistToken WRITE setPersistToken NOTIFY persistTokenChanged )
     Q_PROPERTY( AccessMethod accessMethod READ accessMethod WRITE setAccessMethod NOTIFY accessMethodChanged )
+    Q_PROPERTY( QString grantTypes READ grantTypes WRITE setGrantTypes NOTIFY grantTypesChanged )
+    Q_PROPERTY( TokenAuth tokenAuth READ tokenAuth WRITE setTokenAuth NOTIFY tokenAuthChanged )
     Q_PROPERTY( int requestTimeout READ requestTimeout WRITE setRequestTimeout NOTIFY requestTimeoutChanged )
     Q_PROPERTY( QVariantMap queryPairs READ queryPairs WRITE setQueryPairs NOTIFY queryPairsChanged )
 
@@ -85,6 +89,26 @@ class QgsAuthOAuth2Config : public QObject
       Header,
       Form,
       Query,
+    };
+
+    //! Grant type
+    enum GrantType
+    {
+        gtAuthorizationCode,
+        gtImplicit,
+        gtPassword,
+        gtClientCredentials,
+        gtRefreshToken,
+        gtJwtBearer,
+        gtSaml2Bearer
+    };
+
+    //! Token auth
+    enum TokenAuth
+    {
+        taNone,
+        taClientSecretPost,
+        taClientSecretBasic
     };
 
     //! Construct a QgsAuthOAuth2Config instance
@@ -146,6 +170,12 @@ class QgsAuthOAuth2Config : public QObject
 
     //! Access method
     AccessMethod accessMethod() const { return mAccessMethod; }
+
+    //! Grant type
+    QString grantTypes() const { return mGrantTypes; }
+
+    //! Token auth
+    TokenAuth tokenAuth() const { return mTokenAuth; }
 
     //! Request timeout
     int requestTimeout() const { return mRequestTimeout; }
@@ -243,6 +273,12 @@ class QgsAuthOAuth2Config : public QObject
     //! User readable name of the access \a method
     static QString accessMethodString( AccessMethod method );
 
+    //! User readable name for the \a type
+    static QString grantTypeString( GrantType type );
+
+    //! User readable name for the \a auth method
+    static QString tokenAuthString( TokenAuth method );
+
     //! Path of the token cache \a temporary directory
     static QString tokenCacheDirectory( bool temporary = false );
 
@@ -292,6 +328,10 @@ class QgsAuthOAuth2Config : public QObject
     void setPersistToken( bool persist );
     //! Set access method to \a value
     void setAccessMethod( QgsAuthOAuth2Config::AccessMethod value );
+    //! Set grant type to \a value
+    void setGrantTypes(QString value );
+    //! Set token auth to \a value
+    void setTokenAuth(QgsAuthOAuth2Config::TokenAuth value );
     //! Set request timeout to \a value
     void setRequestTimeout( int value );
     //! Set query pairs to \a pairs
@@ -344,6 +384,10 @@ class QgsAuthOAuth2Config : public QObject
     void persistTokenChanged( bool );
     //! Emitted when configuration access method has changed
     void accessMethodChanged( QgsAuthOAuth2Config::AccessMethod );
+    //! Emitted when configuration grant type has changed
+    void grantTypesChanged( QString );
+    //! Emitted when configuration token auth has changed
+    void tokenAuthChanged( QgsAuthOAuth2Config::TokenAuth );
     //! Emitted when configuration request timeout has changed
     void requestTimeoutChanged( int );
     //! Emitted when configuration query pair has changed
@@ -371,6 +415,8 @@ class QgsAuthOAuth2Config : public QObject
     QString mApiKey;
     bool mPersistToken = false;
     AccessMethod mAccessMethod = AccessMethod::Header;
+    QString mGrantTypes;
+    TokenAuth mTokenAuth = TokenAuth::taNone;
     int mRequestTimeout = 30 ; // in seconds
     QVariantMap mQueryPairs;
     bool mValid = false;

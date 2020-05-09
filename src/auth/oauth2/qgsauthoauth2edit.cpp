@@ -42,6 +42,10 @@ QgsAuthOAuth2Edit::QgsAuthOAuth2Edit( QWidget *parent )
 
   populateAccessMethods();
 
+  populateGrantTypes();
+
+  populateTokenAuthMethods();
+
   queryTableSelectionChanged();
 
   loadDefinedConfigs();
@@ -183,6 +187,9 @@ void QgsAuthOAuth2Edit::setupConnections()
   connect( chkbxTokenPersist, &QCheckBox::toggled, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setPersistToken );
   connect( cmbbxAccessMethod, static_cast<void ( QComboBox::* )( int )>( &QComboBox::currentIndexChanged ),
            this, &QgsAuthOAuth2Edit::updateConfigAccessMethod );
+  connect( lstwdgGrantTypes, &QListWidget::currentItemChanged, this, &QgsAuthOAuth2Edit::currentGrantTypeItemChanged );
+  connect( cmbbxTokenAuth, static_cast<void ( QComboBox::* )( int )>( &QComboBox::currentIndexChanged ),
+             this, &QgsAuthOAuth2Edit::updateConfigTokenAuthMethod );
   connect( spnbxRequestTimeout, static_cast<void ( QSpinBox::* )( int )>( &QSpinBox::valueChanged ),
            mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setRequestTimeout );
 
@@ -401,6 +408,19 @@ void QgsAuthOAuth2Edit::loadFromOAuthConfig( const QgsAuthOAuth2Config *config )
     // advanced
     chkbxTokenPersist->setChecked( config->persistToken() );
     cmbbxAccessMethod->setCurrentIndex( static_cast<int>( config->accessMethod() ) );
+    cmbbxTokenAuth->setCurrentIndex( static_cast<int>( config->tokenAuth() ) );
+
+    // Convert grant type selection from the config as a comma delimited list into QListWidget selections.
+    if( config->grantTypes().length() > 0 ) {
+        QRegularExpression expr( "^(?:([0-9]+),)*([0-9]+)$" );
+        QRegularExpressionMatch matchResult = expr.match( config->grantTypes() );
+        if( matchResult.isValid() ) {
+            QStringList matches = matchResult.capturedTexts()[0].split(",");
+            for (int index = 0; index < matches.length(); index++)
+                lstwdgGrantTypes->item(matches[index].toInt())->setCheckState(Qt::Checked);
+        }
+    }
+
     spnbxRequestTimeout->setValue( config->requestTimeout() );
 
     populateQueryPairs( config->queryPairs() );
@@ -709,6 +729,11 @@ bool QgsAuthOAuth2Edit::onCustomTab() const
   return mCurTab == customTab();
 }
 
+bool QgsAuthOAuth2Edit::onRegistrationTab() const
+{
+    return mCurTab == registrationTab();
+}
+
 bool QgsAuthOAuth2Edit::onDefinedTab() const
 {
   return mCurTab == definedTab();
@@ -869,6 +894,55 @@ void QgsAuthOAuth2Edit::updateConfigAccessMethod( int indx )
 {
   mOAuthConfigCustom->setAccessMethod( static_cast<QgsAuthOAuth2Config::AccessMethod>( indx ) );
 }
+
+void QgsAuthOAuth2Edit::populateGrantTypes()
+{
+    QStringList types;
+    types << QgsAuthOAuth2Config::grantTypeString( QgsAuthOAuth2Config::gtAuthorizationCode )
+          << QgsAuthOAuth2Config::grantTypeString( QgsAuthOAuth2Config::gtImplicit )
+          << QgsAuthOAuth2Config::grantTypeString( QgsAuthOAuth2Config::gtPassword )
+          << QgsAuthOAuth2Config::grantTypeString( QgsAuthOAuth2Config::gtClientCredentials )
+          << QgsAuthOAuth2Config::grantTypeString( QgsAuthOAuth2Config::gtRefreshToken )
+          << QgsAuthOAuth2Config::grantTypeString( QgsAuthOAuth2Config::gtJwtBearer )
+          << QgsAuthOAuth2Config::grantTypeString( QgsAuthOAuth2Config::gtSaml2Bearer );
+
+    lstwdgGrantTypes->addItems( types );
+    for(int i = 0; i < types.length(); i++) {
+        QListWidgetItem *listItem = lstwdgGrantTypes->item(i);
+        listItem->setCheckState(Qt::Unchecked );
+        listItem->setFlags(Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
+    }
+
+}
+
+void QgsAuthOAuth2Edit::currentGrantTypeItemChanged(QListWidgetItem *cur, QListWidgetItem *prev)
+{
+    Q_UNUSED( prev )
+    QList<QListWidgetItem *> items = cur->listWidget()->selectedItems();
+
+    QString types;
+    for( QListWidgetItem * item : items ) types += QString::number( items.indexOf(item) ) + ",";
+    types = types.left( types.length() - 2 );
+
+    mOAuthConfigCustom->setGrantTypes(types);
+}
+
+void QgsAuthOAuth2Edit::populateTokenAuthMethods()
+{
+    cmbbxTokenAuth->addItem( QgsAuthOAuth2Config::tokenAuthString( QgsAuthOAuth2Config::taNone ),
+                                static_cast<int>( QgsAuthOAuth2Config::taNone ) );
+    cmbbxTokenAuth->addItem( QgsAuthOAuth2Config::tokenAuthString( QgsAuthOAuth2Config::taClientSecretPost ),
+                                static_cast<int>( QgsAuthOAuth2Config::taClientSecretPost ) );
+    cmbbxTokenAuth->addItem( QgsAuthOAuth2Config::tokenAuthString( QgsAuthOAuth2Config::taClientSecretBasic ),
+                             static_cast<int>( QgsAuthOAuth2Config::taClientSecretBasic ) );
+}
+
+
+void QgsAuthOAuth2Edit::updateConfigTokenAuthMethod( int indx )
+{
+    mOAuthConfigCustom->setTokenAuth( static_cast<QgsAuthOAuth2Config::TokenAuth>( indx ) );
+}
+
 
 void QgsAuthOAuth2Edit::addQueryPairRow( const QString &key, const QString &val )
 {

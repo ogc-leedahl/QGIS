@@ -73,6 +73,14 @@ class QgsAuthOAuth2Edit : public QgsAuthMethodEdit, private Ui::QgsAuthOAuth2Edi
 
     void updateGrantFlow( int indx );
 
+    void populateGrantTypes();
+
+    void currentGrantTypeItemChanged( QListWidgetItem *cur, QListWidgetItem *prev );
+
+    void populateTokenAuthMethods();
+
+    void updateConfigTokenAuthMethod( int indx );
+
     void exportOAuthConfig();
 
     void importOAuthConfig();
@@ -142,9 +150,11 @@ class QgsAuthOAuth2Edit : public QgsAuthMethodEdit, private Ui::QgsAuthOAuth2Edi
     QVariantMap queryPairs() const;
 
     int customTab() const { return 0; }
-    int definedTab() const { return 1; }
-    int statementTab() const { return 2; }
+    int registrationTab() const {return 1;}
+    int definedTab() const { return 2; }
+    int statementTab() const { return 3; }
     bool onCustomTab() const;
+    bool onRegistrationTab() const;
     bool onDefinedTab() const;
     bool onStatementTab() const;
     void getSoftwareStatementConfig();

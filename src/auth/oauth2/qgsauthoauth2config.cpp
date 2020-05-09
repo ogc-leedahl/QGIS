@@ -48,6 +48,8 @@ QgsAuthOAuth2Config::QgsAuthOAuth2Config( QObject *parent )
   connect( this, &QgsAuthOAuth2Config::apiKeyChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::persistTokenChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::accessMethodChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::grantTypesChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::tokenAuthChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::requestTimeoutChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::queryPairsChanged, this, &QgsAuthOAuth2Config::configChanged );
 
@@ -211,6 +213,22 @@ void QgsAuthOAuth2Config::setAccessMethod( QgsAuthOAuth2Config::AccessMethod val
     emit accessMethodChanged( mAccessMethod );
 }
 
+void QgsAuthOAuth2Config::setGrantTypes(QString value)
+{
+    QString preval( mGrantTypes );
+    mGrantTypes = value;
+    if ( preval != value )
+            emit grantTypesChanged( mGrantTypes );
+}
+
+void QgsAuthOAuth2Config::setTokenAuth(QgsAuthOAuth2Config::TokenAuth value)
+{
+    TokenAuth preval( mTokenAuth );
+    mTokenAuth = value;
+    if ( preval != value )
+            emit tokenAuthChanged( mTokenAuth );
+}
+
 void QgsAuthOAuth2Config::setRequestTimeout( int value )
 {
   int preval( mRequestTimeout );
@@ -248,6 +266,8 @@ void QgsAuthOAuth2Config::setToDefaults()
   setApiKey( QString() );
   setPersistToken( false );
   setAccessMethod( QgsAuthOAuth2Config::Header );
+  setGrantTypes( QString::number( static_cast<int>( QgsAuthOAuth2Config::gtAuthorizationCode ) ) );
+  setTokenAuth( QgsAuthOAuth2Config::taNone );
   setRequestTimeout( 30 ); // in seconds
   setQueryPairs( QVariantMap() );
 }
@@ -272,6 +292,8 @@ bool QgsAuthOAuth2Config::operator==( const QgsAuthOAuth2Config &other ) const
            && other.apiKey() == this->apiKey()
            && other.persistToken() == this->persistToken()
            && other.accessMethod() == this->accessMethod()
+           && other.grantTypes() == this->grantTypes()
+           && other.tokenAuth() == this->tokenAuth()
            && other.requestTimeout() == this->requestTimeout()
            && other.queryPairs() == this->queryPairs() );
 }
@@ -406,6 +428,8 @@ QVariantMap QgsAuthOAuth2Config::mappedProperties() const
   vmap.insert( QStringLiteral( "redirectUrl" ), this->redirectUrl() );
   vmap.insert( QStringLiteral( "refreshTokenUrl" ), this->refreshTokenUrl() );
   vmap.insert( QStringLiteral( "accessMethod" ), static_cast<int>( this->accessMethod() ) );
+  vmap.insert( QStringLiteral( "grantTypes" ), this->grantTypes() );
+  vmap.insert( QStringLiteral( "tokenAuth" ), static_cast<int>(this->tokenAuth() ) );
   vmap.insert( QStringLiteral( "requestTimeout" ), this->requestTimeout() );
   vmap.insert( QStringLiteral( "requestUrl" ), this->requestUrl() );
   vmap.insert( QStringLiteral( "scope" ), this->scope() );
@@ -787,16 +811,54 @@ QString QgsAuthOAuth2Config::grantFlowString( QgsAuthOAuth2Config::GrantFlow flo
 // static
 QString QgsAuthOAuth2Config::accessMethodString( QgsAuthOAuth2Config::AccessMethod method )
 {
-  switch ( method )
-  {
-    case QgsAuthOAuth2Config::Header:
-      return tr( "Header" );
-    case QgsAuthOAuth2Config::Form:
-      return tr( "Form (POST only)" );
-    case QgsAuthOAuth2Config::Query:
-    default:
-      return tr( "URL Query" );
-  }
+    switch ( method )
+    {
+        case QgsAuthOAuth2Config::Header:
+            return tr( "Header" );
+        case QgsAuthOAuth2Config::Form:
+            return tr( "Form (POST only)" );
+        case QgsAuthOAuth2Config::Query:
+        default:
+            return tr( "URL Query" );
+    }
+}
+
+// static
+QString QgsAuthOAuth2Config::grantTypeString( QgsAuthOAuth2Config::GrantType type )
+{
+    switch ( type )
+    {
+        case QgsAuthOAuth2Config::gtImplicit:
+            return tr( "Implicit" );
+        case QgsAuthOAuth2Config::gtPassword:
+            return tr( "Password" );
+        case QgsAuthOAuth2Config::gtClientCredentials:
+            return tr( "Client Credentials" );
+        case QgsAuthOAuth2Config::gtRefreshToken:
+            return tr( "Refresh Token" );
+        case QgsAuthOAuth2Config::gtJwtBearer:
+            return tr( "JWT Bearer" );
+        case QgsAuthOAuth2Config::gtSaml2Bearer:
+            return tr( "SAML 2 Bearer Token" );
+        case QgsAuthOAuth2Config::gtAuthorizationCode:
+        default:
+            return tr( "Authorization Code" );
+    }
+}
+
+// static
+QString QgsAuthOAuth2Config::tokenAuthString( QgsAuthOAuth2Config::TokenAuth method )
+{
+    switch ( method )
+    {
+        case QgsAuthOAuth2Config::taClientSecretPost:
+            return tr( "Client Secret POST" );
+        case QgsAuthOAuth2Config::taClientSecretBasic:
+            return tr( "Client Secret Basic" );
+        case QgsAuthOAuth2Config::taNone:
+        default:
+            return tr( "None" );
+    }
 }
 
 // static
