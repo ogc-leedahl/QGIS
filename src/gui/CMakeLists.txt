@@ -282,6 +282,7 @@ SET(QGIS_GUI_SRCS
   processing/qgsprocessingrecentalgorithmlog.cpp
   processing/qgsprocessingtoolboxmodel.cpp
   processing/qgsprocessingtoolboxtreeview.cpp
+  processing/qgsprocessingvectortilewriterlayerswidgetwrapper.cpp
   processing/qgsprocessingwidgetwrapper.cpp
   processing/qgsprocessingwidgetwrapperimpl.cpp
 
@@ -393,6 +394,7 @@ SET(QGIS_GUI_SRCS
   qgsexpressionbuilderwidget.cpp
   qgsexpressionhighlighter.cpp
   qgsexpressionlineedit.cpp
+  qgsexpressionpreviewwidget.cpp
   qgsexpressionselectiondialog.cpp
   qgsexpressionstoredialog.cpp
   qgsexpressiontreeview.cpp
@@ -402,6 +404,7 @@ SET(QGIS_GUI_SRCS
   qgsfeatureselectiondlg.cpp
   qgsfieldcombobox.cpp
   qgsfieldexpressionwidget.cpp
+  qgsfeaturepickerwidget.cpp
   qgsfieldmappingwidget.cpp
   qgsfieldmappingmodel.cpp
   qgsfeaturelistcombobox.cpp
@@ -540,6 +543,7 @@ SET(QGIS_GUI_SRCS
   qgsuserinputwidget.cpp
   qgsvaliditycheckresultswidget.cpp
   qgsvariableeditorwidget.cpp
+  qgsvectorlayertemporalpropertieswidget.cpp
   qgsvertexmarker.cpp
   qgsfiledownloaderdialog.cpp
   qgsvscrollarea.cpp
@@ -620,11 +624,13 @@ SET(QGIS_GUI_HDRS
   qgsexpressionbuilderwidget.h
   qgsexpressionhighlighter.h
   qgsexpressionlineedit.h
+  qgsexpressionpreviewwidget.h
   qgsexpressionselectiondialog.h
   qgsexpressiontreeview.h
   qgsextentgroupbox.h
   qgsextentwidget.h
   qgsexternalresourcewidget.h
+  qgsfeaturepickerwidget.h
   qgsfeaturelistcombobox.h
   qgsfeatureselectiondlg.h
   qgsfieldcombobox.h
@@ -771,6 +777,7 @@ SET(QGIS_GUI_HDRS
   qgsuserinputwidget.h
   qgsvaliditycheckresultswidget.h
   qgsvariableeditorwidget.h
+  qgsvectorlayertemporalpropertieswidget.h
   qgsvertexmarker.h
   qgsvscrollarea.h
   qgswindowmanagerinterface.h
@@ -994,6 +1001,7 @@ SET(QGIS_GUI_HDRS
   processing/qgsprocessingrecentalgorithmlog.h
   processing/qgsprocessingtoolboxmodel.h
   processing/qgsprocessingtoolboxtreeview.h
+  processing/qgsprocessingvectortilewriterlayerswidgetwrapper.h
   processing/qgsprocessingwidgetwrapper.h
   processing/qgsprocessingwidgetwrapperimpl.h
 

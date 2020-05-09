@@ -393,6 +393,7 @@ void QgsMapCanvas::setDestinationCrs( const QgsCoordinateReferenceSystem &crs )
   if ( !mSettings.visibleExtent().isEmpty() )
   {
     QgsCoordinateTransform transform( mSettings.destinationCrs(), crs, QgsProject::instance() );
+    transform.setBallparkTransformsAreAppropriate( true );
     try
     {
       rect = transform.transformBoundingBox( mSettings.visibleExtent() );
@@ -553,8 +554,12 @@ void QgsMapCanvas::refreshMap()
   expressionContext << QgsExpressionContextUtils::globalScope()
                     << QgsExpressionContextUtils::projectScope( QgsProject::instance() )
                     << QgsExpressionContextUtils::atlasScope( nullptr )
-                    << QgsExpressionContextUtils::mapSettingsScope( mSettings )
-                    << defaultExpressionContextScope()
+                    << QgsExpressionContextUtils::mapSettingsScope( mSettings );
+  if ( QgsExpressionContextScopeGenerator *generator = dynamic_cast< QgsExpressionContextScopeGenerator * >( mController ) )
+  {
+    expressionContext << generator->createExpressionContextScope();
+  }
+  expressionContext << defaultExpressionContextScope()
                     << new QgsExpressionContextScope( mExpressionContextScope );
 
   mSettings.setExpressionContext( expressionContext );

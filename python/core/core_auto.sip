@@ -61,6 +61,8 @@
 %Include auto_generated/qgsexpressioncontextscopegenerator.sip
 %Include auto_generated/qgsexpressionfieldbuffer.sip
 %Include auto_generated/qgsfeature.sip
+%Include auto_generated/qgsfeaturepickermodel.sip
+%Include auto_generated/qgsfeaturepickermodelbase.sip
 %Include auto_generated/qgsfeaturefiltermodel.sip
 %Include auto_generated/qgsfeaturefilterprovider.sip
 %Include auto_generated/qgsfeatureid.sip
@@ -234,6 +236,7 @@
 %Include auto_generated/qgsvectorlayerjoinbuffer.sip
 %Include auto_generated/qgsvectorlayerjoininfo.sip
 %Include auto_generated/qgsvectorlayerserverproperties.sip
+%Include auto_generated/qgsvectorlayertemporalproperties.sip
 %Include auto_generated/qgsvectorlayertools.sip
 %Include auto_generated/qgsvectorlayerundocommand.sip
 %Include auto_generated/qgsvectorlayerundopassthroughcommand.sip
@@ -450,6 +453,7 @@
 %Include auto_generated/processing/qgsprocessingoutputs.sip
 %Include auto_generated/processing/qgsprocessingparameters.sip
 %Include auto_generated/processing/qgsprocessingparametertype.sip
+%Include auto_generated/processing/qgsprocessingparametervectortilewriterlayers.sip
 %Include auto_generated/processing/qgsprocessingprovider.sip
 %Include auto_generated/processing/qgsprocessingregistry.sip
 %Include auto_generated/processing/qgsprocessingutils.sip

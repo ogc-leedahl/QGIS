@@ -34,6 +34,7 @@ from qgis.PyQt.QtCore import (
 )
 from qgis.core import (
     Qgis,
+    QgsCoordinateReferenceSystem,
     QgsCredentials,
     QgsVectorLayer,
     QgsDataSourceUri,
@@ -69,7 +70,7 @@ class CursorAdapter():
         self.result = None
         self.cursor = 0
         self.closed = False
-        if (self.sql != None):
+        if (self.sql is not None):
             self._execute()
 
     def _toStrResultSet(self, res):
@@ -77,7 +78,7 @@ class CursorAdapter():
         for rec in res:
             newrec = []
             for col in rec:
-                if type(col) == type(QVariant(None)):
+                if type(col) == type(QVariant(None)):  # noqa
                     if (str(col) == 'NULL'):
                         col = None
                     else:
@@ -87,11 +88,11 @@ class CursorAdapter():
         return newres
 
     def _execute(self, sql=None):
-        if self.sql == sql and self.result != None:
+        if self.sql == sql and self.result is not None:
             return
-        if (sql != None):
+        if (sql is not None):
             self.sql = sql
-        if (self.sql == None):
+        if (self.sql is None):
             return
         self._debug("execute called with sql " + self.sql)
         try:
@@ -652,12 +653,15 @@ class PostGisDBConnector(DBConnector):
         version_number = int(self.getInfo()[0].split(' ')[1].split('.')[0])
         con_col_name = 'consrc' if version_number < 12 else 'conbin'
 
+        # In the query below, we exclude rows where pg_constraint.contype whose values are equal to 't'
+        # because 't' describes a CONSTRAINT TRIGGER, which is not really a constraint in the traditional
+        # sense, but a special type of trigger, and an extension to the SQL standard.
         sql = u"""SELECT c.conname, c.contype, c.condeferrable, c.condeferred, array_to_string(c.conkey, ' '), c.%s,
                          t2.relname, c.confupdtype, c.confdeltype, c.confmatchtype, array_to_string(c.confkey, ' ') FROM pg_constraint c
                   LEFT JOIN pg_class t ON c.conrelid = t.oid
                         LEFT JOIN pg_class t2 ON c.confrelid = t2.oid
                         JOIN pg_namespace nsp ON t.relnamespace = nsp.oid
-                        WHERE t.relname = %s %s """ % (con_col_name, self.quoteString(tablename), schema_where)
+                        WHERE c.contype <> 't' AND t.relname = %s %s """ % (con_col_name, self.quoteString(tablename), schema_where)
 
         c = self._execute(None, sql)
         res = self._fetchall(c)
@@ -1152,7 +1156,7 @@ class PostGisDBConnector(DBConnector):
         return psycopg2.InterfaceError, psycopg2.OperationalError
 
     def _execute(self, cursor, sql):
-        if cursor != None:
+        if cursor is not None:
             cursor._execute(sql)
             return cursor
         return CursorAdapter(self.core_connection, sql)
