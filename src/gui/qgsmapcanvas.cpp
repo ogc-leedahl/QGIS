@@ -76,6 +76,8 @@ email                : sherman at mrcc.com
 #include "qgsreferencedgeometry.h"
 #include "qgsprojectviewsettings.h"
 #include "qgsmaplayertemporalproperties.h"
+#include "qgsrasterlayertemporalproperties.h"
+#include "qgsvectorlayertemporalproperties.h"
 #include "qgstemporalcontroller.h"
 
 /**
@@ -696,8 +698,12 @@ void QgsMapCanvas::rendererJobFinished()
     {
       mLastLayerRenderTime.insert( it.key()->id(), it.value() );
     }
-    if ( mUsePreviewJobs )
+    if ( mUsePreviewJobs && !mRefreshAfterJob )
       startPreviewJobs();
+  }
+  else
+  {
+    mRefreshAfterJob = false;
   }
 
   // now we are in a slot called from mJob - do not delete it immediately
@@ -706,6 +712,13 @@ void QgsMapCanvas::rendererJobFinished()
   mJob = nullptr;
 
   emit mapCanvasRefreshed();
+
+  if ( mRefreshAfterJob )
+  {
+    mRefreshAfterJob = false;
+    clearTemporalCache();
+    refresh();
+  }
 }
 
 void QgsMapCanvas::previewJobFinished()
@@ -761,6 +774,24 @@ void QgsMapCanvas::setCustomDropHandlers( const QVector<QPointer<QgsCustomDropHa
   mDropHandlers = handlers;
 }
 
+void QgsMapCanvas::clearTemporalCache()
+{
+  if ( mCache )
+  {
+    const QList<QgsMapLayer *> layerList = mapSettings().layers();
+    for ( QgsMapLayer *layer : layerList )
+    {
+      if ( layer->temporalProperties() && layer->temporalProperties()->isActive() )
+      {
+        if ( layer->temporalProperties()->flags() & QgsTemporalProperty::FlagDontInvalidateCachedRendersWhenRangeChanges )
+          continue;
+
+        mCache->invalidateCacheForLayer( layer );
+      }
+    }
+  }
+}
+
 void QgsMapCanvas::setTemporalRange( const QgsDateTimeRange &dateTimeRange )
 {
   if ( temporalRange() == dateTimeRange )
@@ -768,19 +799,12 @@ void QgsMapCanvas::setTemporalRange( const QgsDateTimeRange &dateTimeRange )
 
   mSettings.setTemporalRange( dateTimeRange );
 
-  if ( mCache )
-  {
-    // we need to discard any previously cached images which have temporal properties enabled, so that these will be updated when
-    // the canvas is redrawn
-    const QList<QgsMapLayer *> layerList = mapSettings().layers();
-    for ( QgsMapLayer *layer : layerList )
-    {
-      if ( layer->temporalProperties() && layer->temporalProperties()->isActive() )
-        mCache->invalidateCacheForLayer( layer );
-    }
-  }
-
   emit temporalRangeChanged();
+
+  // we need to discard any previously cached images which have temporal properties enabled, so that these will be updated when
+  // the canvas is redrawn
+  if ( !mJob )
+    clearTemporalCache();
 
   autoRefreshTriggered();
 }
@@ -2030,9 +2054,9 @@ void QgsMapCanvas::autoRefreshTriggered()
 {
   if ( mJob )
   {
-    // canvas is currently being redrawn, so we skip this auto refresh
-    // otherwise we could get stuck in the situation where an auto refresh is triggered
-    // too often to allow the canvas to ever finish rendering
+    // canvas is currently being redrawn, so we defer the last requested
+    // auto refresh until current rendering job finishes
+    mRefreshAfterJob = true;
     return;
   }
 
