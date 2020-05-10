@@ -48,10 +48,17 @@ QgsAuthOAuth2Config::QgsAuthOAuth2Config( QObject *parent )
   connect( this, &QgsAuthOAuth2Config::apiKeyChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::persistTokenChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::accessMethodChanged, this, &QgsAuthOAuth2Config::configChanged );
-  connect( this, &QgsAuthOAuth2Config::grantTypesChanged, this, &QgsAuthOAuth2Config::configChanged );
-  connect( this, &QgsAuthOAuth2Config::tokenAuthChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::requestTimeoutChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::queryPairsChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::regAuthUrlChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::regAccessTokenChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::regRedirectUrlChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::regRedirectPortChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::regTokenAuthChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::regGrantTypeChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::regClientNameChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::regScopesChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::regContactInfoChanged, this, &QgsAuthOAuth2Config::configChanged );
 
   // always recheck validity on any change
   // this, in turn, may emit validityChanged( bool )
@@ -213,22 +220,6 @@ void QgsAuthOAuth2Config::setAccessMethod( QgsAuthOAuth2Config::AccessMethod val
     emit accessMethodChanged( mAccessMethod );
 }
 
-void QgsAuthOAuth2Config::setGrantTypes(QString value)
-{
-    QString preval( mGrantTypes );
-    mGrantTypes = value;
-    if ( preval != value )
-            emit grantTypesChanged( mGrantTypes );
-}
-
-void QgsAuthOAuth2Config::setTokenAuth(QgsAuthOAuth2Config::TokenAuth value)
-{
-    TokenAuth preval( mTokenAuth );
-    mTokenAuth = value;
-    if ( preval != value )
-            emit tokenAuthChanged( mTokenAuth );
-}
-
 void QgsAuthOAuth2Config::setRequestTimeout( int value )
 {
   int preval( mRequestTimeout );
@@ -243,6 +234,78 @@ void QgsAuthOAuth2Config::setQueryPairs( const QVariantMap &pairs )
   mQueryPairs = pairs;
   if ( preval != pairs )
     emit queryPairsChanged( mQueryPairs );
+}
+
+void QgsAuthOAuth2Config::setRegAuthUrl( const QString &authUrl )
+{
+  QString preval( mRegAuthUrl );
+  mRegAuthUrl = authUrl;
+  if ( preval != authUrl )
+    emit regAuthUrlChanged( mRegAuthUrl );
+}
+
+void QgsAuthOAuth2Config::setRegAccessToken( const QString &accessToken )
+{
+  QString preval( mRegAccessToken );
+  mRegAccessToken = accessToken;
+  if ( preval != accessToken )
+    emit regAccessTokenChanged( mRegAccessToken );
+}
+
+void QgsAuthOAuth2Config::setRegRedirectUrl( const QString &redirectUrl )
+{
+  QString preval( mRegRedirectUrl );
+  mRegRedirectUrl = redirectUrl;
+  if ( preval != redirectUrl )
+    emit regRedirectUrlChanged( mRegRedirectUrl );
+}
+
+void QgsAuthOAuth2Config::setRegRedirectPort( int port )
+{
+  int preval( mRegRedirectPort );
+  mRegRedirectPort = port;
+  if ( preval != port )
+    emit regRedirectPortChanged( mRegRedirectPort );
+}
+
+void QgsAuthOAuth2Config::setRegTokenAuth(QgsAuthOAuth2Config::TokenAuth value)
+{
+    TokenAuth preval( mRegTokenAuth );
+    mRegTokenAuth = value;
+    if ( preval != value )
+            emit regTokenAuthChanged( mRegTokenAuth );
+}
+
+void QgsAuthOAuth2Config::setRegGrantType(QgsAuthOAuth2Config::GrantFlow value)
+{
+    QString preval( mRegGrantType );
+    mRegGrantType = value;
+    if ( preval != value )
+            emit regGrantTypeChanged( mRegGrantType );
+}
+
+void QgsAuthOAuth2Config::setRegClientName(const QString &value)
+{
+  QString preval( mRegClientName );
+  mRegClientName = value;
+  if ( preval != value )
+    emit regClientNameChanged( mRegClientName );
+}
+
+void QgsAuthOAuth2Config::setRegScopes( const QString &scopes )
+{
+  QString preval( mRegScopes );
+  mRegScopes = scopes;
+  if ( preval != scopes )
+    emit regScopesChanged( mRegScopes );
+}
+
+void QgsAuthOAuth2Config::setRegContactInfo( const QString &contactInfo )
+{
+  QString preval( mRegContactInfo );
+  mRegContactInfo = contactInfo;
+  if ( preval != contactInfo )
+    emit regContactInfoChanged( mRegContactInfo );
 }
 
 void QgsAuthOAuth2Config::setToDefaults()
@@ -266,10 +329,17 @@ void QgsAuthOAuth2Config::setToDefaults()
   setApiKey( QString() );
   setPersistToken( false );
   setAccessMethod( QgsAuthOAuth2Config::Header );
-  setGrantTypes( QString::number( static_cast<int>( QgsAuthOAuth2Config::gtAuthorizationCode ) ) );
-  setTokenAuth( QgsAuthOAuth2Config::taNone );
   setRequestTimeout( 30 ); // in seconds
   setQueryPairs( QVariantMap() );
+  setRegAuthUrl( QString() );
+  setRegAccessToken( QString() );
+  setRegRedirectUrl ( QString() );
+  setRegRedirectPort( 7070 );
+  setRegTokenAuth( QgsAuthOAuth2Config::taNone );
+  setRegGrantType( QgsAuthOAuth2Config::AuthCode );
+  setRegClientName( QString("QGIS") );
+  setRegScopes( QString() );
+  setRegContactInfo( QString() );
 }
 
 bool QgsAuthOAuth2Config::operator==( const QgsAuthOAuth2Config &other ) const
@@ -292,10 +362,17 @@ bool QgsAuthOAuth2Config::operator==( const QgsAuthOAuth2Config &other ) const
            && other.apiKey() == this->apiKey()
            && other.persistToken() == this->persistToken()
            && other.accessMethod() == this->accessMethod()
-           && other.grantTypes() == this->grantTypes()
-           && other.tokenAuth() == this->tokenAuth()
            && other.requestTimeout() == this->requestTimeout()
-           && other.queryPairs() == this->queryPairs() );
+           && other.queryPairs() == this->queryPairs()
+           && other.regAuthUrl() == this->regAuthUrl()
+           && other.regAccessToken() == this->regAccessToken()
+           && other.regRedirectUrl() == this->regRedirectUrl()
+           && other.regRedirectPort() == this->regRedirectPort()
+           && other.regTokenAuth() == this->regTokenAuth()
+           && other.regGrantType() == this->regGrantType()
+           && other.regClientName() == this->regClientName()
+           && other.regScopes() == this->regScopes()
+           && other.regContactInfo() == this->regContactInfo() );
 }
 
 bool QgsAuthOAuth2Config::operator!=( const QgsAuthOAuth2Config &other ) const
@@ -428,14 +505,21 @@ QVariantMap QgsAuthOAuth2Config::mappedProperties() const
   vmap.insert( QStringLiteral( "redirectUrl" ), this->redirectUrl() );
   vmap.insert( QStringLiteral( "refreshTokenUrl" ), this->refreshTokenUrl() );
   vmap.insert( QStringLiteral( "accessMethod" ), static_cast<int>( this->accessMethod() ) );
-  vmap.insert( QStringLiteral( "grantTypes" ), this->grantTypes() );
-  vmap.insert( QStringLiteral( "tokenAuth" ), static_cast<int>(this->tokenAuth() ) );
   vmap.insert( QStringLiteral( "requestTimeout" ), this->requestTimeout() );
   vmap.insert( QStringLiteral( "requestUrl" ), this->requestUrl() );
   vmap.insert( QStringLiteral( "scope" ), this->scope() );
   vmap.insert( QStringLiteral( "tokenUrl" ), this->tokenUrl() );
   vmap.insert( QStringLiteral( "username" ), this->username() );
   vmap.insert( QStringLiteral( "version" ), this->version() );
+  vmap.insert( QStringLiteral( "regAuthUrl" ), this->regAuthUrl() );
+  vmap.insert( QStringLiteral( "regAccessToken" ), this->regAccessToken() );
+  vmap.insert( QStringLiteral( "regRedirectUrl" ), this->regRedirectUrl() );
+  vmap.insert( QStringLiteral( "regRedirectPort" ), this->regRedirectPort() );
+  vmap.insert( QStringLiteral( "regTokenAuth" ), static_cast<int>(this->regTokenAuth() ) );
+  vmap.insert( QStringLiteral( "regGrantType" ), static_cast<int>(this->regGrantType() ) );
+  vmap.insert( QStringLiteral( "regClientName" ), this->regClientName() );
+  vmap.insert( QStringLiteral( "regScopes" ), this->regScopes() );
+  vmap.insert( QStringLiteral( "regContactInfo" ), this->regContactInfo() );
 
   return vmap;
 }
@@ -824,44 +908,6 @@ QString QgsAuthOAuth2Config::accessMethodString( QgsAuthOAuth2Config::AccessMeth
 }
 
 // static
-QString QgsAuthOAuth2Config::grantTypeString( QgsAuthOAuth2Config::GrantType type )
-{
-    switch ( type )
-    {
-        case QgsAuthOAuth2Config::gtImplicit:
-            return tr( "Implicit" );
-        case QgsAuthOAuth2Config::gtPassword:
-            return tr( "Password" );
-        case QgsAuthOAuth2Config::gtClientCredentials:
-            return tr( "Client Credentials" );
-        case QgsAuthOAuth2Config::gtRefreshToken:
-            return tr( "Refresh Token" );
-        case QgsAuthOAuth2Config::gtJwtBearer:
-            return tr( "JWT Bearer" );
-        case QgsAuthOAuth2Config::gtSaml2Bearer:
-            return tr( "SAML 2 Bearer Token" );
-        case QgsAuthOAuth2Config::gtAuthorizationCode:
-        default:
-            return tr( "Authorization Code" );
-    }
-}
-
-// static
-QString QgsAuthOAuth2Config::tokenAuthString( QgsAuthOAuth2Config::TokenAuth method )
-{
-    switch ( method )
-    {
-        case QgsAuthOAuth2Config::taClientSecretPost:
-            return tr( "Client Secret POST" );
-        case QgsAuthOAuth2Config::taClientSecretBasic:
-            return tr( "Client Secret Basic" );
-        case QgsAuthOAuth2Config::taNone:
-        default:
-            return tr( "None" );
-    }
-}
-
-// static
 QString QgsAuthOAuth2Config::tokenCacheDirectory( bool temporary )
 {
   QDir setdir( QgsApplication::qgisSettingsDirPath() );
@@ -880,3 +926,19 @@ QString QgsAuthOAuth2Config::tokenCachePath( const QString &suffix, bool tempora
   return QStringLiteral( "%1/%2" ).arg( QgsAuthOAuth2Config::tokenCacheDirectory( temporary ),
                                         QgsAuthOAuth2Config::tokenCacheFile( suffix ) );
 }
+
+// static
+QString QgsAuthOAuth2Config::regTokenAuthString( QgsAuthOAuth2Config::TokenAuth method )
+{
+    switch ( method )
+    {
+        case QgsAuthOAuth2Config::taClientSecretPost:
+            return tr( "Client Secret POST" );
+        case QgsAuthOAuth2Config::taClientSecretBasic:
+            return tr( "Client Secret Basic" );
+        case QgsAuthOAuth2Config::taNone:
+        default:
+            return tr( "None" );
+    }
+}
+

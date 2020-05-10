@@ -73,23 +73,25 @@ class QgsAuthOAuth2Edit : public QgsAuthMethodEdit, private Ui::QgsAuthOAuth2Edi
 
     void updateGrantFlow( int indx );
 
-    void populateGrantTypes();
-
-    void currentGrantTypeItemChanged( QListWidgetItem *cur, QListWidgetItem *prev );
-
-    void populateTokenAuthMethods();
-
-    void updateConfigTokenAuthMethod( int indx );
-
     void exportOAuthConfig();
 
     void importOAuthConfig();
 
     void descriptionChanged();
 
+    void regContactInfoChanged();
+
     void populateAccessMethods();
 
     void updateConfigAccessMethod( int indx );
+
+    void populateRegTokenAuthMethods();
+
+    void updateConfigRegTokenAuthMethod( int indx );
+
+    void populateRegGrantType();
+
+    void updateConfigRegGrantType( int indx );
 
     void addQueryPair();
 

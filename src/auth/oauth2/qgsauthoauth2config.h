@@ -55,10 +55,17 @@ class QgsAuthOAuth2Config : public QObject
     Q_PROPERTY( QString apiKey READ apiKey WRITE setApiKey NOTIFY apiKeyChanged )
     Q_PROPERTY( bool persistToken READ persistToken WRITE setPersistToken NOTIFY persistTokenChanged )
     Q_PROPERTY( AccessMethod accessMethod READ accessMethod WRITE setAccessMethod NOTIFY accessMethodChanged )
-    Q_PROPERTY( QString grantTypes READ grantTypes WRITE setGrantTypes NOTIFY grantTypesChanged )
-    Q_PROPERTY( TokenAuth tokenAuth READ tokenAuth WRITE setTokenAuth NOTIFY tokenAuthChanged )
     Q_PROPERTY( int requestTimeout READ requestTimeout WRITE setRequestTimeout NOTIFY requestTimeoutChanged )
     Q_PROPERTY( QVariantMap queryPairs READ queryPairs WRITE setQueryPairs NOTIFY queryPairsChanged )
+    Q_PROPERTY( QString regAuthUrl READ regAuthUrl WRITE setRegAuthUrl NOTIFY regAuthUrlChanged )
+    Q_PROPERTY( QString regAccessToken READ regAccessToken WRITE setRegAccessToken NOTIFY regAccessTokenChanged )
+    Q_PROPERTY( QString regRedirectUrl READ regRedirectUrl WRITE setRegRedirectUrl NOTIFY regRedirectUrlChanged )
+    Q_PROPERTY( int regRedirectPort READ regRedirectPort WRITE setRegRedirectPort NOTIFY regRedirectPortChanged )
+    Q_PROPERTY( TokenAuth regTokenAuth READ regTokenAuth WRITE setRegTokenAuth NOTIFY regTokenAuthChanged )
+    Q_PROPERTY( GrantFlow regGrantType READ regGrantType WRITE setRegGrantType NOTIFY regGrantTypeChanged )
+    Q_PROPERTY( QString regClientName READ regClientName WRITE setRegClientName NOTIFY regClientNameChanged )
+    Q_PROPERTY( QString regScopes READ regScopes WRITE setRegScopes NOTIFY regScopesChanged )
+    Q_PROPERTY( QString regContactInfo READ regContactInfo WRITE setRegContactInfo NOTIFY regContactInfoChanged )
 
   public:
 
@@ -89,18 +96,6 @@ class QgsAuthOAuth2Config : public QObject
       Header,
       Form,
       Query,
-    };
-
-    //! Grant type
-    enum GrantType
-    {
-        gtAuthorizationCode,
-        gtImplicit,
-        gtPassword,
-        gtClientCredentials,
-        gtRefreshToken,
-        gtJwtBearer,
-        gtSaml2Bearer
     };
 
     //! Token auth
@@ -171,12 +166,6 @@ class QgsAuthOAuth2Config : public QObject
     //! Access method
     AccessMethod accessMethod() const { return mAccessMethod; }
 
-    //! Grant type
-    QString grantTypes() const { return mGrantTypes; }
-
-    //! Token auth
-    TokenAuth tokenAuth() const { return mTokenAuth; }
-
     //! Request timeout
     int requestTimeout() const { return mRequestTimeout; }
 
@@ -197,6 +186,33 @@ class QgsAuthOAuth2Config : public QObject
 
     //! Load a string (e.g. JSON) of a config
     bool loadConfigTxt( const QByteArray &configtxt, ConfigFormat format = JSON );
+
+    //! Authorization Url
+    QString regAuthUrl() const { return mRegAuthUrl; }
+
+    //! Access Token
+    QString regAccessToken() const { return mRegAccessToken; }
+
+    //! Redirect Url
+    QString regRedirectUrl() const { return mRegRedirectUrl; }
+
+    //! Redirect Port
+    int regRedirectPort() const { return mRegRedirectPort; }
+
+    //! Token auth
+    TokenAuth regTokenAuth() const { return mRegTokenAuth; }
+
+    //! Grant type
+    GrantFlow regGrantType() const { return mRegGrantType; }
+
+    //! Client Name
+    QString regClientName() const { return mRegClientName; }
+
+    //! Scopes
+    QString regScopes() const { return mRegScopes; }
+
+    //! Contact Infor
+    QString regContactInfo() const { return mRegContactInfo; }
 
     //! Save a config to a string (e.g. JSON)
     QByteArray saveConfigTxt( ConfigFormat format = JSON, bool pretty = false, bool *ok = nullptr ) const;
@@ -273,12 +289,6 @@ class QgsAuthOAuth2Config : public QObject
     //! User readable name of the access \a method
     static QString accessMethodString( AccessMethod method );
 
-    //! User readable name for the \a type
-    static QString grantTypeString( GrantType type );
-
-    //! User readable name for the \a auth method
-    static QString tokenAuthString( TokenAuth method );
-
     //! Path of the token cache \a temporary directory
     static QString tokenCacheDirectory( bool temporary = false );
 
@@ -287,6 +297,9 @@ class QgsAuthOAuth2Config : public QObject
 
     //! Path of the token cache file, with optional \a suffix and \a temporary flag
     static QString tokenCachePath( const QString &suffix = QString(), bool temporary = false );
+
+    //! User readable name for the \a auth method
+    static QString regTokenAuthString( TokenAuth method );
 
   public slots:
     //! Set the id to \a value
@@ -328,10 +341,6 @@ class QgsAuthOAuth2Config : public QObject
     void setPersistToken( bool persist );
     //! Set access method to \a value
     void setAccessMethod( QgsAuthOAuth2Config::AccessMethod value );
-    //! Set grant type to \a value
-    void setGrantTypes(QString value );
-    //! Set token auth to \a value
-    void setTokenAuth(QgsAuthOAuth2Config::TokenAuth value );
     //! Set request timeout to \a value
     void setRequestTimeout( int value );
     //! Set query pairs to \a pairs
@@ -340,6 +349,24 @@ class QgsAuthOAuth2Config : public QObject
     void setToDefaults();
     //! Validate configuration
     void validateConfig();
+    //! Set authorization URL to \a value
+    void setRegAuthUrl( const QString &value );
+    //! Set access tokent to \a value
+    void setRegAccessToken( const QString &value );
+    //! Set redirect URL to \a value
+    void setRegRedirectUrl( const QString &value );
+    //! Set redirect port to \a value
+    void setRegRedirectPort( int value );
+    //! Set token auth to \a value
+    void setRegTokenAuth(QgsAuthOAuth2Config::TokenAuth value );
+    //! Set grant type to \a value
+    void setRegGrantType(QgsAuthOAuth2Config::GrantFlow value );
+    //! Set client name to \a value
+    void setRegClientName( const QString &value );
+    //! Set scopes to \a value
+    void setRegScopes( const QString &value );
+    //! Set contact info to \a value
+    void setRegContactInfo( const QString &value );
 
   signals:
     //! Emitted when configuration has changed
@@ -384,16 +411,32 @@ class QgsAuthOAuth2Config : public QObject
     void persistTokenChanged( bool );
     //! Emitted when configuration access method has changed
     void accessMethodChanged( QgsAuthOAuth2Config::AccessMethod );
-    //! Emitted when configuration grant type has changed
-    void grantTypesChanged( QString );
-    //! Emitted when configuration token auth has changed
-    void tokenAuthChanged( QgsAuthOAuth2Config::TokenAuth );
     //! Emitted when configuration request timeout has changed
     void requestTimeoutChanged( int );
     //! Emitted when configuration query pair has changed
     void queryPairsChanged( const QVariantMap & );
     //! Emitted when configuration validity has changed
     void validityChanged( bool );
+
+    // Dynamic Client Registration
+    //! Emitted when registration auth url has changed
+    void regAuthUrlChanged( QString );
+    //! Emitted when registration access token has changed
+    void regAccessTokenChanged( QString );
+    //! Emitted when registration redirect url has changed
+    void regRedirectUrlChanged( QString );
+    //! Emitted when registration redirect port has changed
+    void regRedirectPortChanged( int );
+    //! Emitted when registration token auth has changed
+    void regTokenAuthChanged( QgsAuthOAuth2Config::TokenAuth );
+    //! Emitted when registration grant type has changed
+    void regGrantTypeChanged( QgsAuthOAuth2Config::GrantFlow );
+    //! Emitted when registration client name has changed
+    void regClientNameChanged( QString );
+    //! Emitted when registration scopes has changed
+    void regScopesChanged( QString );
+    //! Emitted when registration contact info has changed
+    void regContactInfoChanged( QString );
 
   private:
     QString mId;
@@ -415,11 +458,18 @@ class QgsAuthOAuth2Config : public QObject
     QString mApiKey;
     bool mPersistToken = false;
     AccessMethod mAccessMethod = AccessMethod::Header;
-    QString mGrantTypes;
-    TokenAuth mTokenAuth = TokenAuth::taNone;
     int mRequestTimeout = 30 ; // in seconds
     QVariantMap mQueryPairs;
     bool mValid = false;
+    QString mRegAuthUrl;
+    QString mRegAccessToken;
+    QString mRegRedirectUrl;
+    int mRegRedirectPort = 7070;
+    TokenAuth mRegTokenAuth = TokenAuth::taNone;
+    GrantFlow mRegGrantType = GrantFlow::AuthCode;
+    QString mRegClientName;
+    QString mRegScopes;
+    QString mRegContactInfo;
 };
 
 #endif // QGSAUTHOAUTH2CONFIG_H
