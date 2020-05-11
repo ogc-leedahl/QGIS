@@ -81,6 +81,10 @@ class QgsAuthOAuth2Edit : public QgsAuthMethodEdit, private Ui::QgsAuthOAuth2Edi
 
     void regContactInfoChanged();
 
+    void setRegAuthUrl();
+
+    QString const regResponseTypeMetadataString( QgsAuthOAuth2Config::GrantFlow value );
+
     void populateAccessMethods();
 
     void updateConfigAccessMethod( int indx );
@@ -160,6 +164,7 @@ class QgsAuthOAuth2Edit : public QgsAuthMethodEdit, private Ui::QgsAuthOAuth2Edi
     bool onDefinedTab() const;
     bool onStatementTab() const;
     void getSoftwareStatementConfig();
+    void getClientRegistration();
 
     QString currentDefinedConfig() const { return mDefinedId; }
 
@@ -175,8 +180,10 @@ class QgsAuthOAuth2Edit : public QgsAuthMethodEdit, private Ui::QgsAuthOAuth2Edi
     bool mPrevPersistToken = false;
     QToolButton *btnTokenClear = nullptr;
     QString mRegistrationEndpoint;
+    QString mClientRegistrationEndpoint;
     QMap<QString, QVariant> mSoftwareStatement;
     void registerSoftStatement( const QString &registrationUrl );
+    void clientRegistration( const QString &registrationUrl );
     bool mDownloading = false;
     friend class TestQgsAuthOAuth2Method;
 };

@@ -26,6 +26,7 @@
 #include "qgsmessagelog.h"
 #include "qgsnetworkaccessmanager.h"
 #include "qjsonwrapper/Json.h"
+#include "qgis.h"
 
 QgsAuthOAuth2Edit::QgsAuthOAuth2Edit( QWidget *parent )
   : QgsAuthMethodEdit( parent )
@@ -192,7 +193,7 @@ void QgsAuthOAuth2Edit::setupConnections()
 
   connect( mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::validityChanged, this, &QgsAuthOAuth2Edit::configValidityChanged );
 
-  connect( leRegAuthUrl, &QLineEdit::textChanged, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setRegAuthUrl );
+  connect( leRegAuthUrl, &QLineEdit::textChanged, this, &QgsAuthOAuth2Edit::setRegAuthUrl );
   connect( leRegAccessToken, &QLineEdit::textChanged, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setRegAccessToken );
   connect( leRegRedirectUrl, &QLineEdit::textChanged, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setRegRedirectUrl );
   connect( spnbxRegRedirectPort, static_cast<void ( QSpinBox::* )( int )>( &QSpinBox::valueChanged ),
@@ -204,6 +205,7 @@ void QgsAuthOAuth2Edit::setupConnections()
   connect( leRegClientName, &QLineEdit::textChanged, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setRegClientName );
   connect( leRegScopes, &QLineEdit::textChanged, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setRegScopes );
   connect( teRegContactInfo, &QPlainTextEdit::textChanged, this, &QgsAuthOAuth2Edit::regContactInfoChanged );
+  connect( btnRegRegister, &QPushButton::clicked, this, &QgsAuthOAuth2Edit::getClientRegistration );
 
   if ( mParentName )
   {
@@ -892,6 +894,12 @@ void QgsAuthOAuth2Edit::regContactInfoChanged()
     mOAuthConfigCustom->setRegContactInfo( teRegContactInfo->toPlainText() );
 }
 
+void QgsAuthOAuth2Edit::setRegAuthUrl()
+{
+    mOAuthConfigCustom->setRegAuthUrl(leRegAuthUrl->text());
+    btnRegRegister->setEnabled( QUrl(leRegAuthUrl->text()).isValid() );
+}
+
 void QgsAuthOAuth2Edit::populateAccessMethods()
 {
   cmbbxAccessMethod->addItem( QgsAuthOAuth2Config::accessMethodString( QgsAuthOAuth2Config::Header ),
@@ -1207,7 +1215,7 @@ void QgsAuthOAuth2Edit::getSoftwareStatementConfig()
   }
   else
   {
-    QString config = leSoftwareStatementConfigUrl->text();
+    QString config = leRegAuthUrl->text();
     QUrl configUrl( config );
     QNetworkRequest configRequest( configUrl );
     QgsSetRequestInitiatorClass( configRequest, QStringLiteral( "QgsAuthOAuth2Edit" ) );
@@ -1216,6 +1224,91 @@ void QgsAuthOAuth2Edit::getSoftwareStatementConfig()
     connect( configReply, &QNetworkReply::finished, this, &QgsAuthOAuth2Edit::configReplyFinished, Qt::QueuedConnection );
     connect( configReply, qgis::overload<QNetworkReply::NetworkError>::of( &QNetworkReply::error ), this, &QgsAuthOAuth2Edit::networkError, Qt::QueuedConnection );
   }
+}
+
+// static
+QString const QgsAuthOAuth2Edit::regResponseTypeMetadataString(QgsAuthOAuth2Config::GrantFlow value)
+{
+    switch ( value )
+    {
+        case QgsAuthOAuth2Config::AuthCode:
+            return QString( "code" );
+        case QgsAuthOAuth2Config::Implicit:
+            return QString( "token" );
+        case QgsAuthOAuth2Config::ResourceOwner:
+        default:
+            return QString( "none" );
+    }
+}
+
+void QgsAuthOAuth2Edit::clientRegistration( const QString &registrationUrl )
+{
+    QUrl regUrl( registrationUrl );
+    if ( !regUrl.isValid() )
+    {
+        qWarning() << "Registration url is not valid";
+        return;
+    }
+    QByteArray errStr;
+    bool res = false;
+    QVariantMap map;
+
+    QVariantList redirectUris;
+    QString redirectUri;
+    redirectUri.reserve( 22 + mOAuthConfigCustom->regRedirectUrl().length() );
+    redirectUri.append( "http://localhost:" );
+    redirectUri.append( QString::number( mOAuthConfigCustom->regRedirectPort() ) );
+    redirectUri.append( "/" );
+    redirectUri.append( mOAuthConfigCustom->regRedirectUrl() );
+    redirectUris.append( redirectUri );
+
+    QVariantList grantTypes;
+    grantTypes.append( mOAuthConfigCustom->regGrantTypeMetadataString( mOAuthConfigCustom->regGrantType() ) );
+
+    QVariantList responseTypes;
+    responseTypes.append(this->regResponseTypeMetadataString( mOAuthConfigCustom->regGrantType() ) );
+
+    map.insert( "redirect_uris", redirectUris );
+    map.insert( "token_endpoint_auth_method",
+            mOAuthConfigCustom->regTokenAuthMetadataString( mOAuthConfigCustom->regTokenAuth() ) );
+    map.insert( "grant_types", grantTypes );
+    if( responseTypes[0] != QString("none") ) map.insert( "response_types", responseTypes );
+    map.insert( "client_name", mOAuthConfigCustom->regClientName() );
+    map.insert( "client_uri", "https://qgis.org/en/site/");
+    map.insert( "logo_uri", "https://qgis.org/en/_static/images/trademark.png");
+    map.insert( "scope", mOAuthConfigCustom->regScopes() );
+    map.insert( "contacts", mOAuthConfigCustom->regContactInfo() );
+    map.insert( "tos_uri", "" );
+    map.insert( "policy_uri", "" );
+    map.insert( "software_id", "QGIS_54cdcc00-cc4e-4652-aa0e-84f5b4b89460" );
+    map.insert( "software_version", Qgis::version() );
+
+    QByteArray json = QJsonWrapper::toJson( QVariant( mSoftwareStatement ), &res, &errStr );
+    QNetworkRequest registerRequest( regUrl );
+    QgsSetRequestInitiatorClass( registerRequest, QStringLiteral( "QgsAuthOAuth2Edit" ) );
+    registerRequest.setHeader( QNetworkRequest::ContentTypeHeader, QLatin1String( "application/json" ) );
+    QNetworkReply *registerReply;
+    // For testability: use GET if protocol is file://
+    if ( regUrl.scheme() == QLatin1String( "file" ) )
+        registerReply = QgsNetworkAccessManager::instance()->get( registerRequest );
+    else
+        registerReply = QgsNetworkAccessManager::instance()->post( registerRequest, json );
+    mDownloading = true;
+    connect( registerReply, &QNetworkReply::finished, this, &QgsAuthOAuth2Edit::registerReplyFinished, Qt::QueuedConnection );
+    connect( registerReply, qgis::overload<QNetworkReply::NetworkError>::of( &QNetworkReply::error ), this, &QgsAuthOAuth2Edit::networkError, Qt::QueuedConnection );
+}
+
+void QgsAuthOAuth2Edit::getClientRegistration()
+{
+    if ( !mClientRegistrationEndpoint.isEmpty() )
+    {
+        clientRegistration( mClientRegistrationEndpoint );
+    }
+    else
+    {
+        mClientRegistrationEndpoint = mOAuthConfigCustom->regAuthUrl();
+        this->clientRegistration(mClientRegistrationEndpoint);
+    }
 }
 
 void QgsAuthOAuth2Edit::updatePredefinedLocationsTooltip()
@@ -1244,4 +1337,3 @@ void QgsAuthOAuth2Edit::updatePredefinedLocationsTooltip()
 
   lstwdgDefinedConfigs->setToolTip( tr( "Configuration files can be placed in the directories:\n\n%1" ).arg( locationList ) );
 }
-

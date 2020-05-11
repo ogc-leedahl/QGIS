@@ -942,3 +942,32 @@ QString QgsAuthOAuth2Config::regTokenAuthString( QgsAuthOAuth2Config::TokenAuth 
     }
 }
 
+// static
+QString QgsAuthOAuth2Config::regTokenAuthMetadataString( QgsAuthOAuth2Config::TokenAuth method )
+{
+    switch ( method )
+    {
+        case QgsAuthOAuth2Config::taClientSecretPost:
+            return QString( "client_secret_post" );
+        case QgsAuthOAuth2Config::taClientSecretBasic:
+            return QString( "client_secret_post" );
+        case QgsAuthOAuth2Config::taNone:
+        default:
+            return QString( "none" );
+    }
+}
+
+// static
+QString QgsAuthOAuth2Config::regGrantTypeMetadataString(GrantFlow value)
+{
+    switch ( value )
+    {
+        case QgsAuthOAuth2Config::AuthCode:
+            return QString( "authorization_code" );
+        case QgsAuthOAuth2Config::Implicit:
+            return QString( "implicit" );
+        case QgsAuthOAuth2Config::ResourceOwner:
+        default:
+            return QString( "client_credentials" );
+    }
+}

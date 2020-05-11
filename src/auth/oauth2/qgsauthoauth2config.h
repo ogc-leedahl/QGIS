@@ -301,6 +301,12 @@ class QgsAuthOAuth2Config : public QObject
     //! User readable name for the \a auth method
     static QString regTokenAuthString( TokenAuth method );
 
+    //! User readable name for the \a auth method
+    static QString regTokenAuthMetadataString( TokenAuth method );
+
+    //! User readable name for the \a grant type metadata
+    static QString regGrantTypeMetadataString( GrantFlow value );
+
   public slots:
     //! Set the id to \a value
     void setId( const QString &value );

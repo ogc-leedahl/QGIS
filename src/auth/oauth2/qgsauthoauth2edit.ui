@@ -856,6 +856,16 @@
               </property>
              </widget>
             </item>
+            <item row="8" column="1">
+             <widget class="QPushButton" name="btnRegRegister">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="text">
+               <string>Register</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </widget>
@@ -1271,6 +1281,15 @@
   <tabstop>btnGetDefinedDirPath</tabstop>
   <tabstop>lstwdgDefinedConfigs</tabstop>
   <tabstop>pteDefinedDesc</tabstop>
+  <tabstop>leRegAuthUrl</tabstop>
+  <tabstop>leRegAccessToken</tabstop>
+  <tabstop>spnbxRegRedirectPort</tabstop>
+  <tabstop>leRegRedirectUrl</tabstop>
+  <tabstop>cmbbxRegTokenAuth</tabstop>
+  <tabstop>cmbbxRegGrantType</tabstop>
+  <tabstop>leRegClientName</tabstop>
+  <tabstop>leRegScopes</tabstop>
+  <tabstop>teRegContactInfo</tabstop>
  </tabstops>
  <resources>
   <include location="oauth2_resources.qrc"/>
