@@ -96,9 +96,13 @@ void QgsTextFormatWidget::initWidget()
 
   const int iconSize = QgsGuiUtils::scaleIconSize( 20 );
   mOptionsTab->setIconSize( QSize( iconSize, iconSize ) );
+  mLabelingOptionsListWidget->setIconSize( QSize( iconSize, iconSize ) ) ;
   const int iconSize32 = QgsGuiUtils::scaleIconSize( 32 );
   const int iconSize24 = QgsGuiUtils::scaleIconSize( 24 );
   const int iconSize18 = QgsGuiUtils::scaleIconSize( 18 );
+  const int iconSize16 = QgsGuiUtils::scaleIconSize( 16 );
+
+  mPreviewTextBtn->setIconSize( QSize( iconSize16, iconSize16 ) );
   mPointOffsetAboveLeft->setIconSize( QSize( iconSize32, iconSize18 ) );
   mPointOffsetAbove->setIconSize( QSize( iconSize32, iconSize18 ) );
   mPointOffsetAboveRight->setIconSize( QSize( iconSize32, iconSize18 ) );
@@ -477,7 +481,8 @@ void QgsTextFormatWidget::initWidget()
           << mMaskJoinStyleComboBox
           << mMaskBufferSizeSpinBox
           << mMaskOpacityWidget
-          << mCheckAllowLabelsOutsidePolygons;
+          << mCheckAllowLabelsOutsidePolygons
+          << mHtmlFormattingCheckBox;
 
   connectValueChanged( widgets, SLOT( updatePreview() ) );
 
@@ -887,6 +892,7 @@ void QgsTextFormatWidget::updateWidgetForFormat( const QgsTextFormat &format )
   mTextOpacityWidget->setOpacity( format.opacity() );
   comboBlendMode->setBlendMode( format.blendMode() );
   mTextOrientationComboBox->setCurrentIndex( mTextOrientationComboBox->findData( format.orientation() ) );
+  mHtmlFormattingCheckBox->setChecked( format.allowHtmlFormatting() );
 
   mFontWordSpacingSpinBox->setValue( format.font().wordSpacing() );
   mFontLetterSpacingSpinBox->setValue( format.font().letterSpacing() );
@@ -1012,6 +1018,7 @@ QgsTextFormat QgsTextFormatWidget::format( bool includeDataDefinedProperties ) c
   format.setLineHeight( mFontLineHeightSpinBox->value() );
   format.setPreviewBackgroundColor( mPreviewBackgroundColor );
   format.setOrientation( static_cast< QgsTextFormat::TextOrientation >( mTextOrientationComboBox->currentData().toInt() ) );
+  format.setAllowHtmlFormatting( mHtmlFormattingCheckBox->isChecked( ) );
 
   // buffer
   QgsTextBufferSettings buffer;
@@ -1353,13 +1360,13 @@ void QgsTextFormatWidget::updatePlacementWidgets()
 
 void QgsTextFormatWidget::populateFontCapitalsComboBox()
 {
-  mFontCapitalsComboBox->addItem( tr( "No change" ), QVariant( 0 ) );
-  mFontCapitalsComboBox->addItem( tr( "All uppercase" ), QVariant( 1 ) );
-  mFontCapitalsComboBox->addItem( tr( "All lowercase" ), QVariant( 2 ) );
+  mFontCapitalsComboBox->addItem( tr( "No Change" ), QVariant( 0 ) );
+  mFontCapitalsComboBox->addItem( tr( "All Uppercase" ), QVariant( 1 ) );
+  mFontCapitalsComboBox->addItem( tr( "All Lowercase" ), QVariant( 2 ) );
   // Small caps doesn't work right with QPainterPath::addText()
   // https://bugreports.qt.io/browse/QTBUG-13965
-//  mFontCapitalsComboBox->addItem( tr( "Small caps" ), QVariant( 3 ) );
-  mFontCapitalsComboBox->addItem( tr( "Capitalize first letter" ), QVariant( 4 ) );
+//  mFontCapitalsComboBox->addItem( tr( "Small Caps" ), QVariant( 3 ) );
+  mFontCapitalsComboBox->addItem( tr( "Capitalize First Letter" ), QVariant( 4 ) );
 }
 
 void QgsTextFormatWidget::populateFontStyleComboBox()
@@ -1682,7 +1689,7 @@ void QgsTextFormatWidget::updateAvailableShadowPositions()
     QgsTextShadowSettings::ShadowPlacement currentPlacement = static_cast< QgsTextShadowSettings::ShadowPlacement >( mShadowUnderCmbBx->currentData().toInt() );
     mShadowUnderCmbBx->clear();
 
-    mShadowUnderCmbBx->addItem( tr( "Lowest label component" ), QgsTextShadowSettings::ShadowLowest );
+    mShadowUnderCmbBx->addItem( tr( "Lowest Label Component" ), QgsTextShadowSettings::ShadowLowest );
     mShadowUnderCmbBx->addItem( tr( "Text" ), QgsTextShadowSettings::ShadowText );
     mShadowUnderCmbBx->addItem( tr( "Buffer" ), QgsTextShadowSettings::ShadowBuffer );
     if ( mShapeTypeCmbBx->currentData().toInt() != QgsTextBackgroundSettings::ShapeMarkerSymbol )

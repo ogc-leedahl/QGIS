@@ -22,6 +22,7 @@
 #include "qgsvectortilebasicrenderer.h"
 #include "qgsvectortilelabeling.h"
 #include "qgsvectortileloader.h"
+#include "qgsvectortileutils.h"
 
 #include "qgsdatasourceuri.h"
 
@@ -48,6 +49,12 @@ bool QgsVectorTileLayer::loadDataSource()
   mSourcePath = dsUri.param( QStringLiteral( "url" ) );
   if ( mSourceType == QStringLiteral( "xyz" ) )
   {
+    if ( !QgsVectorTileUtils::checkXYZUrlTemplate( mSourcePath ) )
+    {
+      QgsDebugMsg( QStringLiteral( "Invalid format of URL for XYZ source: " ) + mSourcePath );
+      return false;
+    }
+
     // online tiles
     mSourceMinZoom = 0;
     mSourceMaxZoom = 14;
@@ -275,8 +282,9 @@ QString QgsVectorTileLayer::decodedSource( const QString &source, const QString 
 
 QByteArray QgsVectorTileLayer::getRawTile( QgsTileXYZ tileID )
 {
+  QgsTileMatrix tileMatrix = QgsTileMatrix::fromWebMercator( tileID.zoomLevel() );
   QgsTileRange tileRange( tileID.column(), tileID.column(), tileID.row(), tileID.row() );
-  QList<QgsVectorTileRawData> rawTiles = QgsVectorTileLoader::blockingFetchTileRawData( mSourceType, mSourcePath, tileID.zoomLevel(), QPointF(), tileRange );
+  QList<QgsVectorTileRawData> rawTiles = QgsVectorTileLoader::blockingFetchTileRawData( mSourceType, mSourcePath, tileMatrix, QPointF(), tileRange );
   if ( rawTiles.isEmpty() )
     return QByteArray();
   return rawTiles.first().data;
@@ -285,6 +293,7 @@ QByteArray QgsVectorTileLayer::getRawTile( QgsTileXYZ tileID )
 void QgsVectorTileLayer::setRenderer( QgsVectorTileRenderer *r )
 {
   mRenderer.reset( r );
+  triggerRepaint();
 }
 
 QgsVectorTileRenderer *QgsVectorTileLayer::renderer() const
@@ -295,6 +304,7 @@ QgsVectorTileRenderer *QgsVectorTileLayer::renderer() const
 void QgsVectorTileLayer::setLabeling( QgsVectorTileLabeling *labeling )
 {
   mLabeling.reset( labeling );
+  triggerRepaint();
 }
 
 QgsVectorTileLabeling *QgsVectorTileLayer::labeling() const

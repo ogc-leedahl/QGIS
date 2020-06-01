@@ -47,6 +47,14 @@ class CORE_EXPORT QgsTemporalNavigationObject : public QgsTemporalController, pu
       */
     QgsTemporalNavigationObject( QObject *parent SIP_TRANSFERTHIS = nullptr );
 
+    //! Represents the current temporal navigation mode.
+    enum NavigationMode
+    {
+      NavigationOff, //!< Temporal navigation is disabled
+      Animated, //!< Temporal navigation relies on frames within a datetime range
+      FixedRange, //!< Temporal navigation relies on a fixed datetime range
+    };
+
     //! Represents the current animation state.
     enum AnimationState
     {
@@ -68,6 +76,20 @@ class CORE_EXPORT QgsTemporalNavigationObject : public QgsTemporalController, pu
      * \see setAnimationState()
      */
     AnimationState animationState() const;
+
+    /**
+     * Sets the temporal navigation \a mode.
+     *
+     * \see navigationMode()
+     */
+    void setNavigationMode( const NavigationMode mode );
+
+    /**
+     * Returns the currenttemporal navigation mode.
+     *
+     * \see setNavigationMode()
+     */
+    NavigationMode navigationMode() const { return mNavigationMode; }
 
     /**
      * Sets the navigation temporal \a extents, which dictate the earliest
@@ -149,6 +171,20 @@ class CORE_EXPORT QgsTemporalNavigationObject : public QgsTemporalController, pu
     double framesPerSecond() const;
 
     /**
+     * Sets the animation temporal range as cumulative.
+     *
+     * \see temporalRangeCumulative()
+     */
+    void setTemporalRangeCumulative( bool state );
+
+    /**
+     * Returns the animation temporal range cumulative settings.
+     *
+     * \see setTemporalRangeCumulative()
+     */
+    bool temporalRangeCumulative() const;
+
+    /**
      * Returns the total number of frames for the navigation.
      */
     long long totalFrameCount();
@@ -175,6 +211,11 @@ class CORE_EXPORT QgsTemporalNavigationObject : public QgsTemporalController, pu
      * Emitted whenever the animation \a state changes.
      */
     void stateChanged( AnimationState state );
+
+    /**
+     * Emitted whenever the navigation \a mode changes.
+     */
+    void navigationModeChanged( NavigationMode mode );
 
   public slots:
 
@@ -241,6 +282,8 @@ class CORE_EXPORT QgsTemporalNavigationObject : public QgsTemporalController, pu
     //! The controller temporal navigation extent range.
     QgsDateTimeRange mTemporalExtents;
 
+    NavigationMode mNavigationMode = NavigationOff;
+
     //! The current set frame value
     long long mCurrentFrameNumber = 0;
 
@@ -258,6 +301,10 @@ class CORE_EXPORT QgsTemporalNavigationObject : public QgsTemporalController, pu
 
     bool mLoopAnimation = false;
 
+    bool mCumulativeTemporalRange = false;
+
+    QgsTemporalNavigationObject( const QgsTemporalNavigationObject & ) = delete;
+    QgsTemporalNavigationObject &operator= ( const QgsTemporalNavigationObject & ) = delete;
 };
 
 #endif // QGSTEMPORALNAVIGATIONOBJECT_H

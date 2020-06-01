@@ -48,9 +48,13 @@ QgsMeshLayerRenderer::QgsMeshLayerRenderer(
   , mRendererSettings( layer->rendererSettings() )
 {
   // make copies for mesh data
+  // cppcheck-suppress assertWithSideEffect
   Q_ASSERT( layer->nativeMesh() );
+  // cppcheck-suppress assertWithSideEffect
   Q_ASSERT( layer->triangularMesh() );
+  // cppcheck-suppress assertWithSideEffect
   Q_ASSERT( layer->rendererCache() );
+  // cppcheck-suppress assertWithSideEffect
   Q_ASSERT( layer->dataProvider() );
 
   // copy native mesh
@@ -549,6 +553,9 @@ void QgsMeshLayerRenderer::renderVectorDataset()
 
   if ( std::isnan( mVectorDatasetMagMinimum ) || std::isnan( mVectorDatasetMagMaximum ) )
     return; // only NODATA values
+
+  if ( !( mVectorDatasetMagMaximum > 0 ) )
+    return; //all vector are null vector
 
   std::unique_ptr<QgsMeshVectorRenderer> renderer( QgsMeshVectorRenderer::makeVectorRenderer(
         mTriangularMesh,

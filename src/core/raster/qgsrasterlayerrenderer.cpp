@@ -64,6 +64,7 @@ void QgsRasterLayerRendererFeedback::onNewData()
 ///
 QgsRasterLayerRenderer::QgsRasterLayerRenderer( QgsRasterLayer *layer, QgsRenderContext &rendererContext )
   : QgsMapLayerRenderer( layer->id(), &rendererContext )
+  , mProviderCapabilities( static_cast<QgsRasterDataProvider::Capability>( layer->dataProvider()->capabilities() ) )
   , mFeedback( new QgsRasterLayerRendererFeedback( this ) )
 {
   QgsMapToPixel mapToPixel = rendererContext.mapToPixel();
@@ -264,10 +265,11 @@ QgsRasterLayerRenderer::~QgsRasterLayerRenderer()
 
 bool QgsRasterLayerRenderer::render()
 {
-  if ( !mRasterViewPort )
-    return true; // outside of layer extent - nothing to do
-
-  //R->draw( mPainter, mRasterViewPort, &mMapToPixel );
+  // Skip rendering of out of view tiles (xyz)
+  if ( !mRasterViewPort || ( renderContext()->testFlag( QgsRenderContext::Flag::RenderPreviewJob ) &&
+                             !( mProviderCapabilities &
+                                QgsRasterInterface::Capability::Prefetch ) ) )
+    return true;
 
   QElapsedTimer time;
   time.start();

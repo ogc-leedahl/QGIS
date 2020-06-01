@@ -24,8 +24,41 @@
 #include "qgsrange.h"
 #include "qgsmaplayertemporalproperties.h"
 #include "qgsrasterdataprovidertemporalcapabilities.h"
+#include "qgsunittypes.h"
 
 class QgsVectorLayer;
+class QgsFields;
+
+/**
+ * \class QgsVectorLayerTemporalContext
+ * \ingroup core
+ * Encapsulates the context in which a QgsVectorLayer's temporal capabilities
+ * will be applied
+ *
+ * \since QGIS 3.14
+ */
+class CORE_EXPORT QgsVectorLayerTemporalContext
+{
+  public:
+
+    /**
+     * Returns the associated layer.
+     *
+     * \see setLayer()
+     */
+    QgsVectorLayer *layer() const;
+
+    /**
+     * Sets the associated \a layer.
+     *
+     * \see layer()
+     */
+    void setLayer( QgsVectorLayer *layer );
+
+  private:
+
+    QgsVectorLayer *mLayer = nullptr;
+};
 
 /**
  * \class QgsVectorLayerTemporalProperties
@@ -58,6 +91,8 @@ class CORE_EXPORT QgsVectorLayerTemporalProperties : public QgsMapLayerTemporalP
       ModeFixedTemporalRange = 0, //!< Mode when temporal properties have fixed start and end datetimes.
       ModeFeatureDateTimeInstantFromField, //!< Mode when features have a datetime instant taken from a single field
       ModeFeatureDateTimeStartAndEndFromFields, //!< Mode when features have separate fields for start and end times
+      ModeFeatureDateTimeStartAndDurationFromFields, //!< Mode when features have a field for start time and a field for event duration
+      ModeFeatureDateTimeStartAndEndFromExpressions, //!< Mode when features use expressions for start and end times
       ModeRedrawLayerOnly, //!< Redraw the layer when temporal range changes, but don't apply any filtering. Useful when symbology or rule based renderer expressions depend on the time range.
     };
 
@@ -145,8 +180,142 @@ class CORE_EXPORT QgsVectorLayerTemporalProperties : public QgsMapLayerTemporalP
     void setEndField( const QString &field );
 
     /**
-     * Creates a QGIS expression filter string for filtering features from \a layer
-     * to those within the specified time \a range.
+     * Returns the expression for the start time for the feature's time spans.
+     *
+     * \warning This setting is only effective when mode() is
+     * QgsVectorLayerTemporalProperties::ModeFeatureDateTimeStartAndEndFromExpressions
+     *
+     * \see setStartExpression()
+     * \see endExpression()
+     */
+    QString startExpression() const;
+
+    /**
+     * Sets the \a expression to use for the start time for the feature's time spans.
+     *
+     * \warning This setting is only effective when mode() is
+     * QgsVectorLayerTemporalProperties::ModeFeatureDateTimeStartAndEndFromExpressions
+     *
+     * \see startExpression()
+     * \see setEndExpression()
+     */
+    void setStartExpression( const QString &expression );
+
+    /**
+     * Returns the expression for the end time for the feature's time spans.
+     *
+     * \warning This setting is only effective when mode() is
+     * QgsVectorLayerTemporalProperties::ModeFeatureDateTimeStartAndEndFromExpressions
+     *
+     * \see setEndExpression()
+     * \see startExpression()
+     */
+    QString endExpression() const;
+
+    /**
+     * Sets the \a expression to use for the end time for the feature's time spans.
+     *
+     * \warning This setting is only effective when mode() is
+     * QgsVectorLayerTemporalProperties::ModeFeatureDateTimeStartAndEndFromExpressions
+     *
+     * \see endExpression()
+     * \see setStartExpression()
+     */
+    void setEndExpression( const QString &endExpression );
+
+    /**
+     * Returns the name of the duration field, which
+     * contains the duration of the event.
+     *
+     * Units are specified by durationUnits()
+     *
+     * \warning This setting is only effective when mode() is
+     * QgsVectorLayerTemporalProperties::ModeFeatureDateTimeStartAndDurationFromFields
+     *
+     * \see setDurationField()
+     * \see durationUnits()
+     */
+    QString durationField() const;
+
+    /**
+     * Sets the name of the duration \a field, which
+     * contains the duration of the event.
+     *
+     * Units are specified by setDurationUnits()
+     *
+     * \warning This setting is only effective when mode() is
+     * QgsVectorLayerTemporalProperties::ModeFeatureDateTimeStartAndDurationFromFields
+     *
+     * \see durationField()
+     * \see setDurationUnits()
+     */
+    void setDurationField( const QString &field );
+
+    /**
+     * Returns the units of the event's duration.
+     *
+     * \see setDurationUnits()
+     */
+    QgsUnitTypes::TemporalUnit durationUnits() const;
+
+    /**
+     * Sets the \a units of the event's duration.
+     *
+     * \see durationUnits()
+     */
+    void setDurationUnits( QgsUnitTypes::TemporalUnit units );
+
+    /**
+     * Returns the fixed duration length, which contains the duration of the event.
+     *
+     * Units are specified by durationUnits()
+     *
+     * \warning This setting is only effective when mode() is
+     * QgsVectorLayerTemporalProperties::ModeFeatureDateTimeInstantFromField
+     *
+     * \see setFixedDuration()
+     * \see durationUnits()
+     */
+    double fixedDuration() const;
+
+    /**
+     * Sets the fixed event \a duration, which contains the duration of the event.
+     *
+     * Units are specified by setDurationUnits()
+     *
+     * \warning This setting is only effective when mode() is
+     * QgsVectorLayerTemporalProperties::ModeFeatureDateTimeInstantFromField
+     *
+     * \see fixedDuration()
+     * \see setDurationUnits()
+     */
+    void setFixedDuration( double duration );
+
+    /**
+     * Returns TRUE if features will be accumulated over time (i.e. all features which
+     * occur before or within the map's temporal range should be rendered).
+     *
+     * \warning This setting is only effective when mode() is
+     * QgsVectorLayerTemporalProperties::ModeFeatureDateTimeInstantFromField
+     *
+     * \see setAccumulateFeatures()
+     */
+    bool accumulateFeatures() const;
+
+    /**
+     * Sets whether features will be accumulated over time (i.e. all features which
+     * occur before or within the map's temporal range should be rendered).
+     *
+     * \warning This setting is only effective when mode() is
+     * QgsVectorLayerTemporalProperties::ModeFeatureDateTimeInstantFromField
+     *
+     * \see accumulateFeatures()
+     */
+    void setAccumulateFeatures( bool accumulate );
+
+    /**
+     * Creates a QGIS expression filter string for filtering features within
+     * the specified \a context to those within the specified time \a range.
      *
      * The returned expression string considers the mode() and other related
      * settings (such as startField()) when building the filter string.
@@ -156,7 +325,13 @@ class CORE_EXPORT QgsVectorLayerTemporalProperties : public QgsMapLayerTemporalP
      * isVisibleInTemporalRange() when testing whether features from a layer set to the
      * ModeFixedTemporalRange should ALL be filtered out.
      */
-    QString createFilterString( QgsVectorLayer *layer, const QgsDateTimeRange &range ) const;
+    QString createFilterString( const QgsVectorLayerTemporalContext &context, const QgsDateTimeRange &range ) const;
+
+    /**
+     * Attempts to setup the temporal properties by scanning a set of \a fields
+     * and looking for standard naming conventions (e.g. "begin_date").
+     */
+    void guessDefaultsFromFields( const QgsFields &fields );
 
     QDomElement writeXml( QDomElement &element, QDomDocument &doc, const QgsReadWriteContext &context ) override;
     bool readXml( const QDomElement &element, const QgsReadWriteContext &context ) override;
@@ -172,6 +347,15 @@ class CORE_EXPORT QgsVectorLayerTemporalProperties : public QgsMapLayerTemporalP
 
     QString mStartFieldName;
     QString mEndFieldName;
+    QString mDurationFieldName;
+    QgsUnitTypes::TemporalUnit mDurationUnit = QgsUnitTypes::TemporalMinutes;
+
+    double mFixedDuration = 0;
+
+    bool mAccumulateFeatures = false;
+
+    QString mStartExpression;
+    QString mEndExpression;
 
 };
 
