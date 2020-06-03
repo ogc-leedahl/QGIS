@@ -1136,6 +1136,16 @@ void QgsAuthOAuth2Edit::configReplyFinished()
   configReply->deleteLater();
 }
 
+QgsAuthOAuth2Config::GrantFlow QgsAuthOAuth2Edit::getFlowFromMetadata(const QString &grantMetadataType)
+{
+    if ( grantMetadataType == QStringLiteral( "authorization_code" ) )
+        return QgsAuthOAuth2Config::AuthCode;
+    if ( grantMetadataType == QStringLiteral( "implicit" ) )
+        return QgsAuthOAuth2Config::Implicit;
+    else
+        return QgsAuthOAuth2Config::ResourceOwner;
+}
+
 void QgsAuthOAuth2Edit::registerReplyFinished()
 {
   //JSV todo
@@ -1159,7 +1169,19 @@ void QgsAuthOAuth2Edit::registerReplyFinished()
     if ( clientInfo.contains( QStringLiteral( "token_endpoint" ) ) )
       leTokenUrl->setText( clientInfo.value( QStringLiteral( "token_endpoint" ) ).toString() );
     if ( clientInfo.contains( QStringLiteral( "scopes" ) ) )
-      leScope->setText( clientInfo.value( QStringLiteral( "scopes" ) ).toString() );
+        leScope->setText( clientInfo.value( QStringLiteral( "scopes" ) ).toString() );
+    if ( clientInfo.contains( QStringLiteral( "scope" ) ) )
+        leScope->setText( clientInfo.value( QStringLiteral( "scope" ) ).toString() );
+    if ( clientInfo.contains( QStringLiteral( "grant_types") ) )
+    {
+        QString grantType = clientInfo.value( QStringLiteral( "grant_types" ) ).toStringList()[0];
+        this->updateGrantFlow( static_cast<int>( this->getFlowFromMetadata( grantType ) ) );
+    }
+    if ( !mClientRegistrationEndpoint.isEmpty() )
+    {
+        spnbxRedirectPort->setValue( mOAuthConfigCustom->regRedirectPort() );
+        leRedirectUrl->setText( mOAuthConfigCustom->regRedirectUrl() );
+    }
 
     tabConfigs->setCurrentIndex( 0 );
   }
@@ -1252,13 +1274,16 @@ void QgsAuthOAuth2Edit::clientRegistration( const QString &registrationUrl )
     QByteArray errStr;
     bool res = false;
     QVariantMap map;
+    QString localhost;
+    localhost.reserve( 22 + mOAuthConfigCustom->regRedirectUrl().length() );
+    localhost.append( "http://localhost:" );
+    localhost.append( QString::number( mOAuthConfigCustom->regRedirectPort() ) );
+    localhost.append( "/" );
 
     QVariantList redirectUris;
     QString redirectUri;
     redirectUri.reserve( 22 + mOAuthConfigCustom->regRedirectUrl().length() );
-    redirectUri.append( "http://localhost:" );
-    redirectUri.append( QString::number( mOAuthConfigCustom->regRedirectPort() ) );
-    redirectUri.append( "/" );
+    redirectUri.append( localhost );
     redirectUri.append( mOAuthConfigCustom->regRedirectUrl() );
     redirectUris.append( redirectUri );
 
@@ -1277,13 +1302,22 @@ void QgsAuthOAuth2Edit::clientRegistration( const QString &registrationUrl )
     map.insert( "client_uri", "https://qgis.org/en/site/");
     map.insert( "logo_uri", "https://qgis.org/en/_static/images/trademark.png");
     map.insert( "scope", mOAuthConfigCustom->regScopes() );
-    map.insert( "contacts", mOAuthConfigCustom->regContactInfo() );
-    map.insert( "tos_uri", "" );
-    map.insert( "policy_uri", "" );
-    map.insert( "software_id", "QGIS_54cdcc00-cc4e-4652-aa0e-84f5b4b89460" );
+    map.insert( "contacts", mOAuthConfigCustom->regContactInfo().split("\n") );
+
+    QString tosUri;
+    tosUri.reserve( localhost.length() + 3 );
+    tosUri.append( localhost );
+    tosUri.append( "tos" );
+    map.insert( "tos_uri", tosUri );
+    QString policyUri;
+    policyUri.reserve( localhost.length() + 5 );
+    policyUri.append( localhost );
+    policyUri.append( "policy" );
+    map.insert( "policy_uri", policyUri );
+    map.insert( "software_id", "54cdcc00-cc4e-4652-aa0e-84f5b4b89460" );
     map.insert( "software_version", Qgis::version() );
 
-    QByteArray json = QJsonWrapper::toJson( QVariant( mSoftwareStatement ), &res, &errStr );
+    QByteArray json = QJsonWrapper::toJson( QVariant( map ), &res, &errStr );
     QNetworkRequest registerRequest( regUrl );
     QgsSetRequestInitiatorClass( registerRequest, QStringLiteral( "QgsAuthOAuth2Edit" ) );
     registerRequest.setHeader( QNetworkRequest::ContentTypeHeader, QLatin1String( "application/json" ) );

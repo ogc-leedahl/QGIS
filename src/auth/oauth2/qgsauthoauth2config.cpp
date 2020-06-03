@@ -968,6 +968,6 @@ QString QgsAuthOAuth2Config::regGrantTypeMetadataString(GrantFlow value)
             return QString( "implicit" );
         case QgsAuthOAuth2Config::ResourceOwner:
         default:
-            return QString( "client_credentials" );
+            return QString( "password" );
     }
 }

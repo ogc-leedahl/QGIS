@@ -139,6 +139,8 @@ class QgsAuthOAuth2Edit : public QgsAuthMethodEdit, private Ui::QgsAuthOAuth2Edi
 
     void networkError( QNetworkReply::NetworkError error );
 
+    QgsAuthOAuth2Config::GrantFlow getFlowFromMetadata( const QString &grantMetadataType );
+
   private:
 
     void initGui();
