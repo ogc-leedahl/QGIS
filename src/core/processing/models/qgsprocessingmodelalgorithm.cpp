@@ -348,7 +348,7 @@ QVariantMap QgsProcessingModelAlgorithm::processAlgorithm( const QVariantMap &pa
       QVariantMap results = childAlg->run( childParams, context, &modelFeedback, &ok, child.configuration() );
       if ( !ok )
       {
-        const QString error = childAlg->flags() & QgsProcessingAlgorithm::FlagCustomException ? QString() : QObject::tr( "Error encountered while running %1" ).arg( child.description() );
+        const QString error = ( childAlg->flags() & QgsProcessingAlgorithm::FlagCustomException ) ? QString() : QObject::tr( "Error encountered while running %1" ).arg( child.description() );
         throw QgsProcessingException( error );
       }
       childResults.insert( childId, results );
@@ -826,7 +826,7 @@ QMap<QString, QgsProcessingModelAlgorithm::VariableDefinition> QgsProcessingMode
   auto safeName = []( const QString & name )->QString
   {
     QString s = name;
-    return s.replace( QRegularExpression( QStringLiteral( "[\\s'\"\\(\\):]" ) ), QStringLiteral( "_" ) );
+    return s.replace( QRegularExpression( QStringLiteral( "[\\s'\"\\(\\):\\.]" ) ), QStringLiteral( "_" ) );
   };
 
   // "static"/single value sources
