@@ -76,6 +76,7 @@ void QgsO2::initOAuthConfig()
 
   setScope( mOAuth2Config->scope() );
   // TODO: add support to O2 (or this class?) for state query param
+  setState(QString( "request" ) );
 
   // common optional properties
   setApiKey( mOAuth2Config->apiKey() );

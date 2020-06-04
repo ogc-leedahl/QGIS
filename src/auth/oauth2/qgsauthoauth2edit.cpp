@@ -1276,7 +1276,7 @@ void QgsAuthOAuth2Edit::clientRegistration( const QString &registrationUrl )
     QVariantMap map;
     QString localhost;
     localhost.reserve( 22 + mOAuthConfigCustom->regRedirectUrl().length() );
-    localhost.append( "http://localhost:" );
+    localhost.append( "http://127.0.0.1:" );
     localhost.append( QString::number( mOAuthConfigCustom->regRedirectPort() ) );
     localhost.append( "/" );
 
