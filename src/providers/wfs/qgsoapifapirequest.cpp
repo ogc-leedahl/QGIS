@@ -131,10 +131,13 @@ void QgsOapifApiRequest::processReply()
           if ( name.is_string() )
           {
             QgsAbstractMetadataBase::Contact contact( QString::fromStdString( name.get<std::string>() ) );
-            const auto email = jContact["email"];
-            if ( email.is_string() )
+
+            if ( jContact.contains( "email" ) )
             {
-              contact.email = QString::fromStdString( email.get<std::string>() );
+                const auto email = jContact["email"];
+                if (email.is_string()) {
+                    contact.email = QString::fromStdString(email.get<std::string>());
+                }
             }
 
             if ( jContact.contains( "url" ) )
