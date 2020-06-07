@@ -59,6 +59,7 @@ QgsAuthOAuth2Config::QgsAuthOAuth2Config( QObject *parent )
   connect( this, &QgsAuthOAuth2Config::regClientNameChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::regScopesChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::regContactInfoChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::regKeySetChanged, this, &QgsAuthOAuth2Config::configChanged );
 
   // always recheck validity on any change
   // this, in turn, may emit validityChanged( bool )
@@ -308,6 +309,13 @@ void QgsAuthOAuth2Config::setRegContactInfo( const QString &contactInfo )
     emit regContactInfoChanged( mRegContactInfo );
 }
 
+void QgsAuthOAuth2Config::setRegKeySet(const QString &value) {
+    QString preval( mRegKeySet );
+    mRegKeySet = value;
+    if( preval != value )
+        emit regKeySetChanged( mRegKeySet );
+}
+
 void QgsAuthOAuth2Config::setToDefaults()
 {
   setId( QString() );
@@ -340,6 +348,7 @@ void QgsAuthOAuth2Config::setToDefaults()
   setRegClientName( QString("QGIS") );
   setRegScopes( QString() );
   setRegContactInfo( QString() );
+  setRegKeySet( QString() );
 }
 
 bool QgsAuthOAuth2Config::operator==( const QgsAuthOAuth2Config &other ) const
@@ -372,7 +381,8 @@ bool QgsAuthOAuth2Config::operator==( const QgsAuthOAuth2Config &other ) const
            && other.regGrantType() == this->regGrantType()
            && other.regClientName() == this->regClientName()
            && other.regScopes() == this->regScopes()
-           && other.regContactInfo() == this->regContactInfo() );
+           && other.regContactInfo() == this->regContactInfo()
+           && other.regKeySet() == this->regKeySet() );
 }
 
 bool QgsAuthOAuth2Config::operator!=( const QgsAuthOAuth2Config &other ) const
@@ -520,6 +530,7 @@ QVariantMap QgsAuthOAuth2Config::mappedProperties() const
   vmap.insert( QStringLiteral( "regClientName" ), this->regClientName() );
   vmap.insert( QStringLiteral( "regScopes" ), this->regScopes() );
   vmap.insert( QStringLiteral( "regContactInfo" ), this->regContactInfo() );
+  vmap.insert( QStringLiteral( "regKeySet" ), this->regKeySet() );
 
   return vmap;
 }

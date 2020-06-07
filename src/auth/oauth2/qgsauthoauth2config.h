@@ -66,6 +66,7 @@ class QgsAuthOAuth2Config : public QObject
     Q_PROPERTY( QString regClientName READ regClientName WRITE setRegClientName NOTIFY regClientNameChanged )
     Q_PROPERTY( QString regScopes READ regScopes WRITE setRegScopes NOTIFY regScopesChanged )
     Q_PROPERTY( QString regContactInfo READ regContactInfo WRITE setRegContactInfo NOTIFY regContactInfoChanged )
+    Q_PROPERTY( QString regKeySet READ regKeySet WRITE setRegKeySet NOTIFY regKeySetChanged )
 
   public:
 
@@ -211,8 +212,11 @@ class QgsAuthOAuth2Config : public QObject
     //! Scopes
     QString regScopes() const { return mRegScopes; }
 
-    //! Contact Infor
+    //! Contact Information
     QString regContactInfo() const { return mRegContactInfo; }
+
+    //! KeySet
+    QString regKeySet() const { return mRegKeySet; }
 
     //! Save a config to a string (e.g. JSON)
     QByteArray saveConfigTxt( ConfigFormat format = JSON, bool pretty = false, bool *ok = nullptr ) const;
@@ -373,6 +377,8 @@ class QgsAuthOAuth2Config : public QObject
     void setRegScopes( const QString &value );
     //! Set contact info to \a value
     void setRegContactInfo( const QString &value );
+    //! Set key set \a value
+    void setRegKeySet( const QString &value );
 
   signals:
     //! Emitted when configuration has changed
@@ -443,6 +449,8 @@ class QgsAuthOAuth2Config : public QObject
     void regScopesChanged( QString );
     //! Emitted when registration contact info has changed
     void regContactInfoChanged( QString );
+    //! Emitted when registration key set has changed
+    void regKeySetChanged( QString );
 
   private:
     QString mId;
@@ -476,6 +484,7 @@ class QgsAuthOAuth2Config : public QObject
     QString mRegClientName;
     QString mRegScopes;
     QString mRegContactInfo;
+    QString mRegKeySet;
 };
 
 #endif // QGSAUTHOAUTH2CONFIG_H
