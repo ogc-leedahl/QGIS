@@ -18,6 +18,11 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QDesktopServices>
+#include <QSslCertificate>
+#include <QBitArray>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 
 #include "qgsapplication.h"
 #include "qgsauthguiutils.h"
@@ -46,6 +51,8 @@ QgsAuthOAuth2Edit::QgsAuthOAuth2Edit( QWidget *parent )
   populateRegGrantType();
 
   populateRegTokenAuthMethods();
+  
+  populateRegKeySet();
 
   queryTableSelectionChanged();
 
@@ -205,6 +212,8 @@ void QgsAuthOAuth2Edit::setupConnections()
   connect( leRegClientName, &QLineEdit::textChanged, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setRegClientName );
   connect( leRegScopes, &QLineEdit::textChanged, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setRegScopes );
   connect( teRegContactInfo, &QPlainTextEdit::textChanged, this, &QgsAuthOAuth2Edit::regContactInfoChanged );
+  connect( cmbbxRegKeySet, static_cast<void ( QComboBox::* )( int )>( &QComboBox::currentIndexChanged ),
+          this, &QgsAuthOAuth2Edit::updateConfigRegKeySet );
   connect( btnRegRegister, &QPushButton::clicked, this, &QgsAuthOAuth2Edit::getClientRegistration );
 
   if ( mParentName )
@@ -437,6 +446,7 @@ void QgsAuthOAuth2Edit::loadFromOAuthConfig( const QgsAuthOAuth2Config *config )
     leRegClientName->setText( config->regClientName() );
     leRegScopes->setText( config->regScopes() );
     teRegContactInfo->setPlainText( config->regContactInfo() );
+    cmbbxRegKeySet->setCurrentIndex( 0 );
   }
 
   validateConfig();
@@ -797,7 +807,6 @@ void QgsAuthOAuth2Edit::updateGrantFlow( int indx )
     lePassword->setText( QString() );
 }
 
-
 void QgsAuthOAuth2Edit::exportOAuthConfig()
 {
   if ( !onCustomTab() || !mValid )
@@ -892,6 +901,44 @@ void QgsAuthOAuth2Edit::descriptionChanged()
 void QgsAuthOAuth2Edit::regContactInfoChanged()
 {
     mOAuthConfigCustom->setRegContactInfo( teRegContactInfo->toPlainText() );
+}
+
+void QgsAuthOAuth2Edit::updateConfigRegKeySet( int indx )
+{
+    Q_UNUSED(indx)
+    QString data = cmbbxRegKeySet->itemData(indx).toString();
+    mOAuthConfigCustom->setRegKeySet( data );
+}
+
+void QgsAuthOAuth2Edit::loadAvailableConfigs()
+{
+  mConfigs.clear();
+  mConfigs = QgsApplication::authManager()->availableAuthMethodConfigs( QString() );
+}
+
+void QgsAuthOAuth2Edit::populateRegKeySet()
+{
+  loadAvailableConfigs();
+
+  cmbbxRegKeySet->blockSignals( true );
+  cmbbxRegKeySet->clear();
+  cmbbxRegKeySet->addItem( tr( "No Token Key Set Selected" ), "0" );
+
+  QgsStringMap sortmap;
+  QgsAuthMethodConfigsMap::const_iterator cit = mConfigs.constBegin();
+  for ( cit = mConfigs.constBegin(); cit != mConfigs.constEnd(); ++cit )
+  {
+    QgsAuthMethodConfig config = cit.value();
+    if ( config.method() == QString( "PKI-PKCS#12" ) )
+        sortmap.insert( QStringLiteral( "%1 (%2)" ).arg( config.name(), config.method() ), cit.key() );
+  }
+
+  QgsStringMap::const_iterator sm = sortmap.constBegin();
+  for ( sm = sortmap.constBegin(); sm != sortmap.constEnd(); ++sm )
+  {
+    cmbbxRegKeySet->addItem( sm.key(), sm.value() );
+  }
+  cmbbxRegKeySet->blockSignals( false );
 }
 
 void QgsAuthOAuth2Edit::setRegAuthUrl()
@@ -1263,6 +1310,177 @@ QString const QgsAuthOAuth2Edit::regResponseTypeMetadataString(QgsAuthOAuth2Conf
     }
 }
 
+QByteArray QgsAuthOAuth2Edit::parseDer( const QByteArray &der, int *pPos, QString *pJson, char *pLastDerType )
+{
+    int pos = *pPos;
+    char derType = der.at(pos++);
+    QByteArray value;
+    if ( ( derType & 32 ) == 32 )
+    {
+        // Constructed Type
+        *pLastDerType = derType;
+        if ( ( derType & 31 ) == 16 )
+        {
+            // Sequence
+            int derLength = retrieveDerValue( der, &pos, &value );
+            bool first = pJson->length() == 0;
+            pJson->append( first ? "[" : "{" );
+            QString closeSequence = first ? "]" : "}";
+
+            int valuePos = 0;
+            QByteArray newValue = value;
+            while( valuePos < ( newValue.length() - 1 ) )
+            {
+                if ( *pLastDerType == '\x02' ) pJson->append( "," );
+                newValue = parseDer( newValue, &valuePos, pJson, pLastDerType );
+            }
+            pJson->append( closeSequence );
+            pos += derLength;
+            if( pos < der.length() )
+            {
+                pJson->append( "," );
+            }
+
+            *pLastDerType = derType;
+            while( pos < der.length() )
+            {
+                if ( *pLastDerType == '\x02' ) pJson->append( "," );
+                newValue = parseDer( der, &pos, pJson, pLastDerType );
+            }
+            value = der;
+        }
+    }
+    else if ( derType == 6 )
+    {
+        // Object Identifier
+        *pLastDerType = derType;
+        int componentLength = static_cast<int>( der.at( pos++ ) );
+        if ( componentLength >= 6 )
+        {
+            QByteArray rsa = QByteArrayLiteral("\x2a\x86\x48\x86\xf7\x0d");
+            QByteArray algorithm = der.mid( pos, 6 );
+            pos += 6;
+            if ( algorithm == rsa )
+            {
+                // RSA Algorithm
+                if (componentLength >= 9 )
+                {
+                    QByteArray pkcs1Encrypt = QByteArrayLiteral("\x01\x01\x01");
+                    QByteArray test = der.mid( pos, 3 );
+                    pos += 3;
+                    if ( test == pkcs1Encrypt ) {
+                        // KCS-1 Encryptio
+                        pJson->append( "\"rsaEncryption\": " );
+                        value = der.mid( pos );
+                        pos = 0;
+                    }
+                }
+            }
+        }
+    }
+    else if ( derType == 5 )
+    {
+        // NULL Value
+        *pLastDerType = derType;
+        value = der.mid( pos, 1 );
+        pos = 0;
+        pJson->append( "\"\"" );
+    }
+    else if ( derType == 3 )
+    {
+        // Bit String containing RSA Public Key
+        *pLastDerType = derType;
+        int derLength = retrieveDerValue( der, &pos, &value) - 1;
+        int bitPos = 0;
+        QByteArray newValue = value.mid( 1, derLength );
+
+        value = parseDer( newValue, &bitPos, pJson, pLastDerType );
+        pos += derLength + 1;
+        value = der;
+    }
+    else if ( derType == 2 )
+    {
+        *pLastDerType = derType;
+        int derLength = retrieveDerValue( der, &pos, &value);
+        int firstValue = static_cast<int>( value.at(0) );
+        QByteArray newValue = firstValue == 0 ? value.mid( 1 ) : value;
+        QByteArray base64 = newValue.toBase64(QByteArray::Base64UrlEncoding);
+        if ( firstValue == 0 ) pJson->append( "\"n\": \"" );
+        else pJson->append( "\"e\": \"" );
+        pJson->append( base64 );
+        pJson->append( "\"" );
+        pos += derLength;
+        value = der;
+    }
+
+    *pPos = pos;
+    return value;
+}
+
+int QgsAuthOAuth2Edit::retrieveDerValue(const QByteArray &der, int *pPos, QByteArray *pValue)
+{
+    int pos = *pPos;
+    int derLength= static_cast<int>( der.at( pos++ ) );
+
+    if ( ( derLength & 128 ) == 128 )
+    {
+        int lengthSize = derLength & 127;
+        QByteArray buffer = der.mid( pos, lengthSize );
+        pos += lengthSize;
+        derLength = 0;
+        for ( int i = 0; i < lengthSize; i++ )
+        {
+            derLength <<= 8;
+            derLength += static_cast<int>( buffer.at( i ) );
+        }
+        *pValue = der.mid( pos, derLength );
+    }
+    else
+    {
+        *pValue = der.mid( pos, derLength );
+    }
+
+    *pPos = pos;
+    return derLength;
+}
+
+QString QgsAuthOAuth2Edit::loadPkcs12Config( const QString &authcfg )
+{
+    QgsAuthMethodConfig mconfig;
+
+    if ( !QgsApplication::authManager()->loadAuthenticationConfig( authcfg, mconfig, true ) )
+    {
+        QgsDebugMsg( QStringLiteral( "PKI bundle for authcfg %1: FAILED to retrieve config" ).arg( authcfg ) );
+        // return bundle;
+    }
+
+    QStringList bundlelist = QgsAuthCertUtils::pkcs12BundleToPem( mconfig.config( QStringLiteral( "bundlepath" ) ),
+            mconfig.config( QStringLiteral( "bundlepass" ) ), false );
+
+    if ( bundlelist.isEmpty() || bundlelist.size() < 2 )
+    {
+        QgsDebugMsg( QStringLiteral( "PKI bundle for authcfg %1: insert FAILED, PKCS#12 bundle parsing failed" ).arg( authcfg ) );
+        //return bundle;
+    }
+
+    // init client cert
+    // Note: if this is not valid, no sense continuing
+    QSslCertificate clientcert( bundlelist.at( 0 ).toLatin1() );
+    if ( !QgsAuthCertUtils::certIsViable( clientcert ) )
+    {
+        QgsDebugMsg( QStringLiteral( "PKI bundle for authcfg %1: insert FAILED, client cert is not viable" ).arg( authcfg ) );
+        //return bundle;
+    }
+
+    QSslKey publicKey = clientcert.publicKey();
+    QByteArray der = publicKey.toDer();
+    int derPos = 0;
+    QString json;
+    char lastDerType = '\x00';
+    parseDer( der, &derPos, &json, &lastDerType );
+    return json;
+}
+
 void QgsAuthOAuth2Edit::clientRegistration( const QString &registrationUrl )
 {
     QUrl regUrl( registrationUrl );
@@ -1317,7 +1535,25 @@ void QgsAuthOAuth2Edit::clientRegistration( const QString &registrationUrl )
     map.insert( "software_id", "54cdcc00-cc4e-4652-aa0e-84f5b4b89460" );
     map.insert( "software_version", Qgis::version() );
 
+    if ( cmbbxRegKeySet->currentIndex() != 0 )
+    {
+        QString jsonString = loadPkcs12Config( cmbbxRegKeySet->itemData( cmbbxRegKeySet->currentIndex() ).toString() );
+        QJsonDocument jsonDocument = QJsonDocument::fromJson( jsonString.toUtf8() );
+        QJsonArray jsonArray = jsonDocument.array();
+        QVariantList jwks;
+        QVariantMap jwk;
+        jwk.insert( "kty", "RSA" );
+        jwk.insert( "use", "enc" );
+        jwk.insert( "key_ops", "wrapKey");
+        jwk.insert( "n", jsonArray[1].toObject()["n"].toString() );
+        jwk.insert( "e", jsonArray[1].toObject()["e"].toString() );
+        jwk.insert( "kid", "qgis_dcs" );
+        jwks.append( jwk );
+        map.insert( "jwks", jwks );
+    }
+
     QByteArray json = QJsonWrapper::toJson( QVariant( map ), &res, &errStr );
+    qDebug() << json;
     QNetworkRequest registerRequest( regUrl );
     QgsSetRequestInitiatorClass( registerRequest, QStringLiteral( "QgsAuthOAuth2Edit" ) );
     registerRequest.setHeader( QNetworkRequest::ContentTypeHeader, QLatin1String( "application/json" ) );

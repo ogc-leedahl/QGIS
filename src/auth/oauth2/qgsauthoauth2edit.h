@@ -22,7 +22,7 @@
 
 #include "qgsauthconfig.h"
 #include "qgsauthoauth2config.h"
-
+#include "qgsauthconfig.h"
 
 /**
  * The QgsAuthOAuth2Edit class allows editing of an OAuth2 authentication configuration
@@ -93,7 +93,11 @@ class QgsAuthOAuth2Edit : public QgsAuthMethodEdit, private Ui::QgsAuthOAuth2Edi
 
     void updateConfigRegTokenAuthMethod( int indx );
 
+    void updateConfigRegKeySet( int indx );
+
     void populateRegGrantType();
+
+    void populateRegKeySet();
 
     void updateConfigRegGrantType( int indx );
 
@@ -145,6 +149,10 @@ class QgsAuthOAuth2Edit : public QgsAuthMethodEdit, private Ui::QgsAuthOAuth2Edi
 
     void initGui();
     void parseSoftwareStatement( const QString &path );
+    void loadAvailableConfigs();
+    QString loadPkcs12Config( const QString &authcfg );
+    QByteArray parseDer( const QByteArray &der, int *pPos, QString *pJson, char *pLastDerType );
+    int retrieveDerValue( const QByteArray &der, int *pPos, QByteArray *pValue );
 
     QWidget *parentWidget() const;
     QLineEdit *parentNameField() const;
@@ -180,6 +188,7 @@ class QgsAuthOAuth2Edit : public QgsAuthMethodEdit, private Ui::QgsAuthOAuth2Edi
     bool mValid = false;
     int mCurTab = 0;
     bool mPrevPersistToken = false;
+    QgsAuthMethodConfigsMap mConfigs;
     QToolButton *btnTokenClear = nullptr;
     QString mRegistrationEndpoint;
     QString mClientRegistrationEndpoint;
