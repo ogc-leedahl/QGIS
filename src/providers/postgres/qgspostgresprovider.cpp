@@ -469,7 +469,7 @@ QString QgsPostgresProvider::pkParamWhereClause( int offset, const char *alias )
         int idx = mPrimaryKeyAttrs[i];
         QgsField fld = field( idx );
 
-        whereClause += delim + QStringLiteral( "%3%1=$%2" ).arg( connectionRO()->fieldExpression( fld ) ).arg( offset++ ).arg( aliased );
+        whereClause += delim + QStringLiteral( "%3%1=$%2" ).arg( connectionRO()->fieldExpressionForWhereClause( fld ) ).arg( offset++ ).arg( aliased );
         delim = QStringLiteral( " AND " );
       }
     }
@@ -604,11 +604,11 @@ QString QgsPostgresUtils::whereClause( QgsFeatureId featureId, const QgsFields &
           int idx = pkAttrs[i];
           QgsField fld = fields.at( idx );
 
-          whereClause += delim + conn->fieldExpression( fld );
+          whereClause += delim + conn->fieldExpressionForWhereClause( fld, pkVals[i].type() );
           if ( pkVals[i].isNull() )
             whereClause += QLatin1String( " IS NULL" );
           else
-            whereClause += '=' + QgsPostgresConn::quotedValue( pkVals[i].toString() );
+            whereClause += '=' + QgsPostgresConn::quotedValue( pkVals[i] ); // remove toString as it must be handled by quotedValue function
 
           delim = QStringLiteral( " AND " );
         }
@@ -828,14 +828,8 @@ bool QgsPostgresProvider::loadFields()
     }
   }
 
-  // Populate the field vector for this layer. The field vector contains
-  // field name, type, length, and precision (if numeric)
-  QString sql = QStringLiteral( "SELECT * FROM %1 LIMIT 0" ).arg( mQuery );
-
-  QgsPostgresResult result( connectionRO()->PQexec( sql ) );
-
   // Collect type info
-  sql = QStringLiteral( "SELECT oid,typname,typtype,typelem,typlen FROM pg_type" );
+  QString sql = QStringLiteral( "SELECT oid,typname,typtype,typelem,typlen FROM pg_type" );
   QgsPostgresResult typeResult( connectionRO()->PQexec( sql ) );
 
   QMap<Oid, PGTypeInfo> typeMap;
@@ -851,6 +845,11 @@ bool QgsPostgresProvider::loadFields()
     typeMap.insert( typeResult.PQgetvalue( i, 0 ).toUInt(), typeInfo );
   }
 
+  // Populate the field vector for this layer. The field vector contains
+  // field name, type, length, and precision (if numeric)
+  sql = QStringLiteral( "SELECT * FROM %1 LIMIT 0" ).arg( mQuery );
+
+  QgsPostgresResult result( connectionRO()->PQexec( sql ) );
 
   QMap<Oid, QMap<int, QString> > fmtFieldTypeMap, descrMap, defValMap, identityMap, generatedMap;
   QMap<Oid, QMap<int, Oid> > attTypeIdMap;
@@ -1120,6 +1119,13 @@ bool QgsPostgresProvider::loadFields()
         fieldType = QVariant::Bool;
         fieldSize = -1;
       }
+      // PG 12 returns "name" type for some system table fields (e.g. information_schema.tables)
+      else if ( fieldTypeName == QLatin1String( "name" ) )
+      {
+        fieldSubType = QVariant::String;
+        // "name" type lenght is 64 according to: SELECT typlen FROM pg_type WHERE typname = 'name';
+        fieldSize = 64;
+      }
       else
       {
         // be tolerant in case of views: this might be a field used as a key
@@ -1308,7 +1314,7 @@ bool QgsPostgresProvider::hasSufficientPermsAndCapabilities()
       testAccess = connectionRO()->PQexec( QStringLiteral( "SELECT pg_is_in_recovery()" ) );
       if ( testAccess.PQresultStatus() != PGRES_TUPLES_OK || testAccess.PQgetvalue( 0, 0 ) == QLatin1String( "t" ) )
       {
-        QgsMessageLog::logMessage( tr( "PostgreSQL is still in recovery after a database crash\n(or you are connected to a (read-only) slave).\nWrite accesses will be denied." ), tr( "PostGIS" ) );
+        QgsMessageLog::logMessage( tr( "PostgreSQL is still in recovery after a database crash\n(or you are connected to a (read-only) standby server).\nWrite accesses will be denied." ), tr( "PostGIS" ) );
         inRecovery = true;
       }
     }
@@ -2084,7 +2090,7 @@ QString QgsPostgresProvider::defaultValueClause( int fieldId ) const
   // Here, we return the expression used to generate the field value, so the
   // user can see what is happening when inserting a new feature.
   // On inserting a new feature or updating a generated field, this is
-  // ommited from the generated queries.
+  // omitted from the generated queries.
   // See https://www.postgresql.org/docs/12/ddl-generated-columns.html
   if ( !genVal.isEmpty() )
   {
@@ -3013,9 +3019,14 @@ bool QgsPostgresProvider::changeAttributeValues( const QgsChangedAttributesMap &
         if ( result.PQresultStatus() != PGRES_COMMAND_OK && result.PQresultStatus() != PGRES_TUPLES_OK )
           throw PGException( result );
       }
+      else // let the user know that no field was actually changed
+      {
+        QgsLogger::warning( tr( "No fields were updated on the database." ) );
+      }
 
       // update feature id map if key was changed
-      if ( pkChanged && mPrimaryKeyType == PktFidMap )
+      // PktInt64 also uses a fid map even if it is a stand alone field.
+      if ( pkChanged && ( mPrimaryKeyType == PktFidMap || mPrimaryKeyType == PktInt64 ) )
       {
         QVariantList k = mShared->removeFid( fid );
 
@@ -3284,8 +3295,8 @@ bool QgsPostgresProvider::changeFeatures( const QgsChangedAttributesMap &attr_ma
   {
     conn->begin();
 
-    QgsFeatureIds ids( attr_map.keys().toSet() );
-    ids |= geometry_map.keys().toSet();
+    QgsFeatureIds ids( qgis::listToSet( attr_map.keys() ) );
+    ids |= qgis::listToSet( geometry_map.keys() );
 
     // cycle through the features
     const auto constIds = ids;
@@ -3305,6 +3316,8 @@ bool QgsPostgresProvider::changeFeatures( const QgsChangedAttributesMap &attr_ma
 
       // cycle through the changed attributes of the feature
       QString delim;
+      int numChangedFields = 0;
+
       for ( QgsAttributeMap::const_iterator siter = attrs.constBegin(); siter != attrs.constEnd(); ++siter )
       {
         try
@@ -3312,6 +3325,14 @@ bool QgsPostgresProvider::changeFeatures( const QgsChangedAttributesMap &attr_ma
           QgsField fld = field( siter.key() );
 
           pkChanged = pkChanged || mPrimaryKeyAttrs.contains( siter.key() );
+
+          if ( mGeneratedValues.contains( siter.key() ) && !mGeneratedValues.value( siter.key(), QString() ).isEmpty() )
+          {
+            QgsLogger::warning( tr( "Changing the value of GENERATED field %1 is not allowed." ).arg( fld.name() ) );
+            continue;
+          }
+
+          numChangedFields++;
 
           sql += delim + QStringLiteral( "%1=" ).arg( quotedIdentifier( fld.name() ) );
           delim = ',';
@@ -3326,6 +3347,16 @@ bool QgsPostgresProvider::changeFeatures( const QgsChangedAttributesMap &attr_ma
           {
             sql += QStringLiteral( "st_geographyfromewkt(%1)" )
                    .arg( quotedValue( siter->toString() ) );
+          }
+          else if ( fld.typeName() == QLatin1String( "jsonb" ) )
+          {
+            sql += QStringLiteral( "%1::jsonb" )
+                   .arg( quotedJsonValue( siter.value() ) );
+          }
+          else if ( fld.typeName() == QLatin1String( "json" ) )
+          {
+            sql += QStringLiteral( "%1::json" )
+                   .arg( quotedJsonValue( siter.value() ) );
           }
           else if ( fld.typeName() == QLatin1String( "bytea" ) )
           {
@@ -3344,11 +3375,20 @@ bool QgsPostgresProvider::changeFeatures( const QgsChangedAttributesMap &attr_ma
 
       if ( !geometry_map.contains( fid ) )
       {
-        sql += QStringLiteral( " WHERE %1" ).arg( whereClause( fid ) );
+        // Don't try to UPDATE an empty set of values (might happen if the table only has GENERATED fields,
+        // or if the user only changed GENERATED fields in the form/attribute table.
+        if ( numChangedFields > 0 )
+        {
+          sql += QStringLiteral( " WHERE %1" ).arg( whereClause( fid ) );
 
-        QgsPostgresResult result( conn->PQexec( sql ) );
-        if ( result.PQresultStatus() != PGRES_COMMAND_OK && result.PQresultStatus() != PGRES_TUPLES_OK )
-          throw PGException( result );
+          QgsPostgresResult result( conn->PQexec( sql ) );
+          if ( result.PQresultStatus() != PGRES_COMMAND_OK && result.PQresultStatus() != PGRES_TUPLES_OK )
+            throw PGException( result );
+        }
+        else // let the user know that nothing has actually changed
+        {
+          QgsLogger::warning( tr( "No fields/geometries were updated on the database." ) );
+        }
       }
       else
       {
@@ -3375,7 +3415,8 @@ bool QgsPostgresProvider::changeFeatures( const QgsChangedAttributesMap &attr_ma
       }
 
       // update feature id map if key was changed
-      if ( pkChanged && mPrimaryKeyType == PktFidMap )
+      // PktInt64 also uses a fid map even though it is a single field.
+      if ( pkChanged && ( mPrimaryKeyType == PktFidMap || mPrimaryKeyType == PktInt64 ) )
       {
         QVariantList k = mShared->removeFid( fid );
 

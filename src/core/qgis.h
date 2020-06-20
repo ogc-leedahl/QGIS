@@ -40,7 +40,7 @@ int QgisEvent = QEvent::User + 1;
 
 /**
  * \ingroup core
- * The QGIS class provides global constants for use throughout the application.
+ * The Qgis class provides global constants for use throughout the application.
  */
 class CORE_EXPORT Qgis
 {
@@ -465,6 +465,16 @@ namespace qgis
     return list.toSet();
 #else
     return QSet<T>( list.begin(), list.end() );
+#endif
+  }
+
+  template<class T>
+  QList<T> setToList( const QSet<T> &set )
+  {
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    return set.toList();
+#else
+    return QList<T>( set.begin(), set.end() );
 #endif
   }
 }

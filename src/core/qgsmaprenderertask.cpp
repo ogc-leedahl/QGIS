@@ -187,6 +187,8 @@ bool QgsMapRendererTask::run()
 
       component.name = QStringLiteral( "layer_%1" ).arg( outputLayer );
       component.mapLayerId = job->currentLayerId();
+      component.opacity = job->currentLayerOpacity();
+      component.compositionMode = job->currentLayerCompositionMode();
       component.sourcePdfPath = mGeoPdfExporter->generateTemporaryFilepath( QStringLiteral( "layer_%1.pdf" ).arg( outputLayer ) );
       pdfComponents << component;
 
@@ -214,6 +216,7 @@ bool QgsMapRendererTask::run()
     exportDetails.dpi = mMapSettings.outputDpi();
 
     exportDetails.layerIdToPdfLayerTreeNameMap = mLayerIdToLayerNameMap;
+    exportDetails.layerOrder = mMapLayerOrder;
 
     if ( mSaveWorldFile )
     {
@@ -453,6 +456,7 @@ void QgsMapRendererTask::prepare()
     for ( const QgsMapLayer *layer : layers )
     {
       mLayerIdToLayerNameMap.insert( layer->id(), layer->name() );
+      mMapLayerOrder << layer->id();
     }
 
     mJob.reset( new QgsMapRendererStagedRenderJob( mMapSettings, QgsMapRendererStagedRenderJob::RenderLabelsByMapLayer ) );

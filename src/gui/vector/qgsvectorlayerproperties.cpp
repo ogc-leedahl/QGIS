@@ -374,7 +374,7 @@ QgsVectorLayerProperties::QgsVectorLayerProperties(
                        mOptStackedWidget->indexOf( mOptsPage_Style ) );
   }
 
-  QString title = QString( tr( "Layer Properties - %1" ) ).arg( mLayer->name() );
+  QString title = tr( "Layer Properties — %1" ).arg( mLayer->name() );
   if ( !mLayer->styleManager()->isDefault( mLayer->styleManager()->currentStyle() ) )
     title += QStringLiteral( " (%1)" ).arg( mLayer->styleManager()->currentStyle() );
   restoreOptionsBaseUi( title );
@@ -462,16 +462,14 @@ void QgsVectorLayerProperties::addPropertiesPageFactory( QgsMapLayerConfigWidget
     return;
   }
 
-  QListWidgetItem *item = new QListWidgetItem();
-  item->setIcon( factory->icon() );
-  item->setText( factory->title() );
-  item->setToolTip( factory->title() );
-
-  mOptionsListWidget->addItem( item );
-
   QgsMapLayerConfigWidget *page = factory->createWidget( mLayer, nullptr, false, this );
   mLayerPropertiesPages << page;
-  mOptionsStackedWidget->addWidget( page );
+
+  const QString beforePage = factory->layerPropertiesPagePositionHint();
+  if ( beforePage.isEmpty() )
+    addPage( factory->title(), factory->title(), factory->icon(), page );
+  else
+    insertPage( factory->title(), factory->title(), factory->icon(), page, beforePage );
 }
 
 void QgsVectorLayerProperties::insertFieldOrExpression()
@@ -639,7 +637,7 @@ void QgsVectorLayerProperties::apply()
     }
   }
 
-  mLayer->setDisplayExpression( mDisplayExpressionWidget->currentField() );
+  mLayer->setDisplayExpression( mDisplayExpressionWidget->asExpression() );
   mLayer->setMapTipTemplate( mMapTipWidget->text() );
 
   mLayer->actions()->clearActions();

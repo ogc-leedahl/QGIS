@@ -2064,7 +2064,7 @@ static QVariant floatToDegreeFormat( const QgsCoordinateFormatter::Format format
   if ( values.count() > 3 )
     formatString = QgsExpressionUtils::getStringValue( values.at( 3 ), parent );
 
-  QgsCoordinateFormatter::FormatFlags flags = nullptr;
+  QgsCoordinateFormatter::FormatFlags flags = QgsCoordinateFormatter::FormatFlags();
   if ( formatString.compare( QLatin1String( "suffix" ), Qt::CaseInsensitive ) == 0 )
   {
     flags = QgsCoordinateFormatter::FlagDegreesUseStringSuffix;
@@ -3122,10 +3122,20 @@ static QVariant fcnGeomFromWKB( const QVariantList &values, const QgsExpressionC
   return !geom.isNull() ? QVariant::fromValue( geom ) : QVariant();
 }
 
-static QVariant fcnGeomFromGML( const QVariantList &values, const QgsExpressionContext *, QgsExpression *parent, const QgsExpressionNodeFunction * )
+static QVariant fcnGeomFromGML( const QVariantList &values, const QgsExpressionContext *context, QgsExpression *parent, const QgsExpressionNodeFunction * )
 {
   QString gml = QgsExpressionUtils::getStringValue( values.at( 0 ), parent );
-  QgsGeometry geom = QgsOgcUtils::geometryFromGML( gml );
+  QgsOgcUtils::Context ogcContext;
+  if ( context )
+  {
+    QgsWeakMapLayerPointer mapLayerPtr {context->variable( QStringLiteral( "layer" ) ).value<QgsWeakMapLayerPointer>() };
+    if ( mapLayerPtr )
+    {
+      ogcContext.layer = mapLayerPtr.data();
+      ogcContext.transformContext = context->variable( QStringLiteral( "_project_transform_context" ) ).value<QgsCoordinateTransformContext>();
+    }
+  }
+  QgsGeometry geom = QgsOgcUtils::geometryFromGML( gml, ogcContext );
   QVariant result = !geom.isNull() ? QVariant::fromValue( geom ) : QVariant();
   return result;
 }

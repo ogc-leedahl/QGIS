@@ -79,7 +79,7 @@ void QgsAttributeTableDialog::updateMultiEditButtonState()
 
   mActionToggleMultiEdit->setEnabled( mLayer->isEditable() );
 
-  if ( !mLayer->isEditable() || ( mLayer->isEditable() && mMainView->view() != QgsDualView::AttributeEditor ) )
+  if ( !mLayer->isEditable() || mMainView->view() != QgsDualView::AttributeEditor )
   {
     mActionToggleMultiEdit->setChecked( false );
   }
@@ -357,7 +357,7 @@ void QgsAttributeTableDialog::updateTitle()
   QWidget *w = mDock ? qobject_cast<QWidget *>( mDock )
                : mDialog ? qobject_cast<QWidget *>( mDialog )
                : qobject_cast<QWidget *>( this );
-  w->setWindowTitle( tr( " %1 :: Features Total: %2, Filtered: %3, Selected: %4" )
+  w->setWindowTitle( tr( " %1 — Features Total: %2, Filtered: %3, Selected: %4" )
                      .arg( mLayer->name() )
                      .arg( std::max( static_cast< long >( mMainView->featureCount() ), mLayer->featureCount() ) ) // layer count may be estimated, so use larger of the two
                      .arg( mMainView->filteredFeatureCount() )
@@ -636,7 +636,7 @@ void QgsAttributeTableDialog::mActionCopySelectedRows_triggered()
     }
     featureStore.setFields( fields );
 
-    QgsFeatureIterator it = mLayer->getFeatures( QgsFeatureRequest( featureIds.toSet() )
+    QgsFeatureIterator it = mLayer->getFeatures( QgsFeatureRequest( qgis::listToSet( featureIds ) )
                             .setSubsetOfAttributes( fieldNames, mLayer->fields() ) );
     QgsFeatureMap featureMap;
     QgsFeature feature;

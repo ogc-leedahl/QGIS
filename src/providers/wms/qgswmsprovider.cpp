@@ -581,7 +581,7 @@ void QgsWmsProvider::fetchOtherResTiles( QgsTileMode tileMode, const QgsRectangl
   }
 
   // get URLs of tiles because their URLs are used as keys in the tile cache
-  TilePositions tiles = tilesSet.toList();
+  TilePositions tiles = qgis::setToList( tilesSet );
   TileRequests requests;
   switch ( tileMode )
   {
@@ -1373,7 +1373,7 @@ bool QgsWmsProvider::retrieveServerCapabilities( bool forceRefresh )
       return false;
     }
 
-    QgsWmsCapabilities caps( transformContext() );
+    QgsWmsCapabilities caps( transformContext(), mSettings.baseUrl() );
     if ( !caps.parseResponse( downloadCaps.response(), mSettings.parserSettings() ) )
     {
       mErrorFormat = caps.lastErrorFormat();
@@ -2914,6 +2914,14 @@ QgsRasterIdentifyResult QgsWmsProvider::identify( const QgsPointXY &point, QgsRa
       {
         setQueryItem( query, QStringLiteral( "FEATURE_COUNT" ), QString::number( mSettings.mFeatureCount ) );
       }
+
+      // For WMS-T layers
+      if ( temporalCapabilities() &&
+           temporalCapabilities()->hasTemporalCapabilities() )
+      {
+        addWmstParameters( query );
+      }
+
       requestUrl.setQuery( query );
 
       layerList << *layers;
@@ -3296,7 +3304,7 @@ QgsRasterIdentifyResult QgsWmsProvider::identify( const QgsPointXY &point, QgsRa
           QgsDebugMsg( "parsing GML error: " + err.message() );
           return QgsRasterIdentifyResult( err );
         }
-        results.insert( results.size(), qVariantFromValue( featureStoreList ) );
+        results.insert( results.size(), QVariant::fromValue( featureStoreList ) );
       }
       else if ( jsonPart != -1 )
       {
@@ -3423,7 +3431,7 @@ QgsRasterIdentifyResult QgsWmsProvider::identify( const QgsPointXY &point, QgsRa
           results.insert( results.size(), err );  // string returned for format type "feature" means error
         }
 
-        results.insert( results.size(), qVariantFromValue( featureStoreList ) );
+        results.insert( results.size(), QVariant::fromValue( featureStoreList ) );
       }
     }
   }
