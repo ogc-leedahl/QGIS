@@ -154,6 +154,7 @@ void QgsWFSNewConnection::oapifLandingPageReplyFinished()
 
   wfsVersionComboBox()->setCurrentIndex( WFS_VERSION_API_FEATURES_1_0 );
   wfsPagingEnabledCheckBox()->setChecked( true );
+  wfsOapiMediaTypeComboBox()->setEnabled( true );
 
   mCapabilities.reset();
 

@@ -78,6 +78,15 @@ QgsNewHttpConnection::QgsNewHttpConnection( QWidget *parent, ConnectionTypes typ
            static_cast<void ( QComboBox::* )( int )>( &QComboBox::currentIndexChanged ),
            this, &QgsNewHttpConnection::wfsVersionCurrentIndexChanged );
 
+  cmbMediaType->clear();
+  cmbMediaType->addItem( tr( "Default" ) );
+  cmbMediaType->addItem( tr( "DCS JSON Package with GeoJSON" ) );
+  cmbMediaType->addItem( tr( "GeoJSON with DCS JSON Packaged Features" ) );
+  cmbMediaType->setEnabled( false );
+  connect( cmbMediaType,
+           static_cast<void ( QComboBox::* )( int )>( &QComboBox::currentIndexChanged ),
+           this, &QgsNewHttpConnection::wfsOapiMediaTypeCurrentIndexChanged );
+
   connect( cbxWfsFeaturePaging, &QCheckBox::stateChanged,
            this, &QgsNewHttpConnection::wfsFeaturePagingStateChanged );
 
@@ -166,6 +175,12 @@ void QgsNewHttpConnection::wfsVersionCurrentIndexChanged( int index )
   txtPageSize->setEnabled( cbxWfsFeaturePaging->isChecked() && ( index == WFS_VERSION_MAX || index >= WFS_VERSION_1_1 ) );
   cbxWfsIgnoreAxisOrientation->setEnabled( index != WFS_VERSION_1_0 && index != WFS_VERSION_API_FEATURES_1_0 );
   cbxWfsInvertAxisOrientation->setEnabled( index != WFS_VERSION_API_FEATURES_1_0 );
+  cmbMediaType->setEnabled( index == WFS_VERSION_API_FEATURES_1_0 );
+}
+
+void QgsNewHttpConnection::wfsOapiMediaTypeCurrentIndexChanged( int index )
+{
+    Q_UNUSED(index)
 }
 
 void QgsNewHttpConnection::wfsFeaturePagingStateChanged( int state )
@@ -251,6 +266,11 @@ QComboBox *QgsNewHttpConnection::wfsVersionComboBox()
   return cmbVersion;
 }
 
+QComboBox *QgsNewHttpConnection::wfsOapiMediaTypeComboBox()
+{
+  return cmbMediaType;
+}
+
 QCheckBox *QgsNewHttpConnection::wfsPagingEnabledCheckBox()
 {
   return cbxWfsFeaturePaging;
@@ -318,6 +338,14 @@ void QgsNewHttpConnection::updateServiceSpecificSettings()
   else if ( version == QLatin1String( "OGC_API_FEATURES" ) )
     versionIdx = WFS_VERSION_API_FEATURES_1_0;
   cmbVersion->setCurrentIndex( versionIdx );
+
+  QString mediaType = settings.value( wfsKey + "/mediaType" ).toString();
+  int mediaTypeIdx = 0;
+  if ( mediaType == QLatin1String( "dcs_geojson" ) )
+      mediaTypeIdx = 1;
+  if ( mediaType == QLatin1String( "geojson_dcs" ) )
+      mediaTypeIdx = 2;
+  cmbMediaType->setCurrentIndex( mediaTypeIdx );
 
   // Enable/disable these items per WFS versions
   wfsVersionCurrentIndexChanged( versionIdx );
@@ -523,6 +551,22 @@ void QgsNewHttpConnection::accept()
         break;
     }
     settings.setValue( wfsKey + "/version", version );
+
+    QString mediaType;
+    switch ( cmbMediaType->currentIndex() )
+    {
+        case WFS_MEDIA_DCS_GEOJSON:
+            mediaType = QStringLiteral( "dcs_geojson" );
+            break;
+        case WFS_MEDIA_GEOJSON_DCS:
+            mediaType = QStringLiteral( "geojson_dcs" );
+            break;
+        case WFS_MEDIA_DEFAULT:
+        default:
+            mediaType = QStringLiteral( "application/geo+json" );
+            break;
+    }
+    settings.setValue( wfsKey + "/mediaType", mediaType );
 
     settings.setValue( wfsKey + "/maxnumfeatures", txtMaxNumFeatures->text() );
 

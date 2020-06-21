@@ -1553,7 +1553,6 @@ void QgsAuthOAuth2Edit::clientRegistration( const QString &registrationUrl )
     }
 
     QByteArray json = QJsonWrapper::toJson( QVariant( map ), &res, &errStr );
-    qDebug() << json;
     QNetworkRequest registerRequest( regUrl );
     QgsSetRequestInitiatorClass( registerRequest, QStringLiteral( "QgsAuthOAuth2Edit" ) );
     registerRequest.setHeader( QNetworkRequest::ContentTypeHeader, QLatin1String( "application/json" ) );

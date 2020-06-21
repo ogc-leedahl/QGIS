@@ -99,6 +99,7 @@ class GUI_EXPORT QgsNewHttpConnection : public QDialog, private Ui::QgsNewHttpCo
     void urlChanged( const QString & );
     void updateOkButtonState();
     void wfsVersionCurrentIndexChanged( int index );
+    void wfsOapiMediaTypeCurrentIndexChanged( int index );
     void wfsFeaturePagingStateChanged( int state );
 
   protected:
@@ -111,6 +112,13 @@ class GUI_EXPORT QgsNewHttpConnection : public QDialog, private Ui::QgsNewHttpCo
       WFS_VERSION_1_1 = 2,
       WFS_VERSION_2_0 = 3,
       WFS_VERSION_API_FEATURES_1_0 = 4,
+    };
+
+    enum WfsOapiMediaTypeIndex
+    {
+        WFS_MEDIA_DEFAULT = 0,
+        WFS_MEDIA_DCS_GEOJSON = 1,
+        WFS_MEDIA_GEOJSON_DCS = 2,
     };
 
     /**
@@ -143,6 +151,12 @@ class GUI_EXPORT QgsNewHttpConnection : public QDialog, private Ui::QgsNewHttpCo
      * \since QGIS 3.2
      */
     QComboBox *wfsVersionComboBox() SIP_SKIP;
+
+    /**
+     * Returns the "OGC API - Features Media Type combobox.
+     * Proposed new addition to support Data Centric Security Options.
+     */
+    QComboBox *wfsOapiMediaTypeComboBox() SIP_SKIP;
 
     /**
      * Returns the "WFS paging enabled" checkbox
