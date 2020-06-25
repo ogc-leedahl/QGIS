@@ -46,6 +46,7 @@ QgsAuthOAuth2Config::QgsAuthOAuth2Config( QObject *parent )
   connect( this, &QgsAuthOAuth2Config::passwordChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::scopeChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::apiKeyChanged, this, &QgsAuthOAuth2Config::configChanged );
+  connect( this, &QgsAuthOAuth2Config::keySetChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::persistTokenChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::accessMethodChanged, this, &QgsAuthOAuth2Config::configChanged );
   connect( this, &QgsAuthOAuth2Config::requestTimeoutChanged, this, &QgsAuthOAuth2Config::configChanged );
@@ -205,6 +206,14 @@ void QgsAuthOAuth2Config::setApiKey( const QString &value )
     emit apiKeyChanged( mApiKey );
 }
 
+void QgsAuthOAuth2Config::setKeySet(const QString &value)
+{
+    QString preval( mKeySet );
+    mKeySet = value;
+    if ( preval != value )
+        emit keySetChanged( mKeySet );
+}
+
 void QgsAuthOAuth2Config::setPersistToken( bool persist )
 {
   bool preval( mPersistToken );
@@ -335,6 +344,7 @@ void QgsAuthOAuth2Config::setToDefaults()
   setPassword( QString() );
   setScope( QString() );
   setApiKey( QString() );
+  setKeySet( QString() );
   setPersistToken( false );
   setAccessMethod( QgsAuthOAuth2Config::Header );
   setRequestTimeout( 30 ); // in seconds
@@ -369,6 +379,7 @@ bool QgsAuthOAuth2Config::operator==( const QgsAuthOAuth2Config &other ) const
            && other.password() == this->password()
            && other.scope() == this->scope()
            && other.apiKey() == this->apiKey()
+           && other.keySet() == this->keySet()
            && other.persistToken() == this->persistToken()
            && other.accessMethod() == this->accessMethod()
            && other.requestTimeout() == this->requestTimeout()
@@ -501,6 +512,7 @@ QVariantMap QgsAuthOAuth2Config::mappedProperties() const
 {
   QVariantMap vmap;
   vmap.insert( QStringLiteral( "apiKey" ), this->apiKey() );
+  vmap.insert( QStringLiteral( "keySet" ), this->keySet() );
   vmap.insert( QStringLiteral( "clientId" ), this->clientId() );
   vmap.insert( QStringLiteral( "clientSecret" ), this->clientSecret() );
   vmap.insert( QStringLiteral( "configType" ), static_cast<int>( this->configType() ) );

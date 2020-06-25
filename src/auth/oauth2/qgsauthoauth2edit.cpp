@@ -192,6 +192,8 @@ void QgsAuthOAuth2Edit::setupConnections()
   connect( lePassword, &QgsPasswordLineEdit::textChanged, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setPassword );
   connect( leScope, &QLineEdit::textChanged, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setScope );
   connect( leApiKey, &QLineEdit::textChanged, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setApiKey );
+  connect( cmbbxKeySet, static_cast<void ( QComboBox::* )( int )>( &QComboBox::currentIndexChanged ),
+          this, &QgsAuthOAuth2Edit::updateConfigKeySet );
   connect( chkbxTokenPersist, &QCheckBox::toggled, mOAuthConfigCustom.get(), &QgsAuthOAuth2Config::setPersistToken );
   connect( cmbbxAccessMethod, static_cast<void ( QComboBox::* )( int )>( &QComboBox::currentIndexChanged ),
            this, &QgsAuthOAuth2Edit::updateConfigAccessMethod );
@@ -425,6 +427,18 @@ void QgsAuthOAuth2Edit::loadFromOAuthConfig( const QgsAuthOAuth2Config *config )
     lePassword->setText( config->password() );
     leScope->setText( config->scope() );
     leApiKey->setText( config->apiKey() );
+    if ( config->keySet().count() > 0 )
+    {
+        for ( int i = 1; i < cmbbxKeySet->count(); i++ )
+        {
+            if ( cmbbxKeySet->itemData( i ) == config->keySet() )
+            {
+                cmbbxKeySet->setCurrentIndex(i);
+                break;
+            }
+        }
+    }
+      else cmbbxKeySet->setCurrentIndex( 0 );
 
     // advanced
     chkbxTokenPersist->setChecked( config->persistToken() );
@@ -446,7 +460,18 @@ void QgsAuthOAuth2Edit::loadFromOAuthConfig( const QgsAuthOAuth2Config *config )
     leRegClientName->setText( config->regClientName() );
     leRegScopes->setText( config->regScopes() );
     teRegContactInfo->setPlainText( config->regContactInfo() );
-    cmbbxRegKeySet->setCurrentIndex( 0 );
+    if ( config->regKeySet().count() > 0 )
+    {
+        for ( int i = 1; i < cmbbxRegKeySet->count(); i++ )
+        {
+            if ( cmbbxRegKeySet->itemData( i ) == config->regKeySet() )
+            {
+                cmbbxRegKeySet->setCurrentIndex(i);
+                break;
+            }
+        }
+    }
+    else cmbbxRegKeySet->setCurrentIndex( 0 );
   }
 
   validateConfig();
@@ -903,9 +928,14 @@ void QgsAuthOAuth2Edit::regContactInfoChanged()
     mOAuthConfigCustom->setRegContactInfo( teRegContactInfo->toPlainText() );
 }
 
+void QgsAuthOAuth2Edit::updateConfigKeySet( int indx )
+{
+    QString data = cmbbxKeySet->itemData(indx).toString();
+    mOAuthConfigCustom->setKeySet( data );
+}
+
 void QgsAuthOAuth2Edit::updateConfigRegKeySet( int indx )
 {
-    Q_UNUSED(indx)
     QString data = cmbbxRegKeySet->itemData(indx).toString();
     mOAuthConfigCustom->setRegKeySet( data );
 }
@@ -921,8 +951,11 @@ void QgsAuthOAuth2Edit::populateRegKeySet()
   loadAvailableConfigs();
 
   cmbbxRegKeySet->blockSignals( true );
+  cmbbxKeySet->blockSignals( true );
   cmbbxRegKeySet->clear();
+  cmbbxKeySet->clear();
   cmbbxRegKeySet->addItem( tr( "No Token Key Set Selected" ), "0" );
+  cmbbxKeySet->addItem( tr ( "No Token Key Set Selected" ), "0" );
 
   QgsStringMap sortmap;
   QgsAuthMethodConfigsMap::const_iterator cit = mConfigs.constBegin();
@@ -937,7 +970,9 @@ void QgsAuthOAuth2Edit::populateRegKeySet()
   for ( sm = sortmap.constBegin(); sm != sortmap.constEnd(); ++sm )
   {
     cmbbxRegKeySet->addItem( sm.key(), sm.value() );
+    cmbbxKeySet->addItem( sm.key(), sm.value() );
   }
+  cmbbxKeySet->blockSignals( false );
   cmbbxRegKeySet->blockSignals( false );
 }
 
@@ -1229,6 +1264,7 @@ void QgsAuthOAuth2Edit::registerReplyFinished()
         spnbxRedirectPort->setValue( mOAuthConfigCustom->regRedirectPort() );
         leRedirectUrl->setText( mOAuthConfigCustom->regRedirectUrl() );
     }
+    cmbbxKeySet->setCurrentIndex( cmbbxRegKeySet->currentIndex() );
 
     tabConfigs->setCurrentIndex( 0 );
   }

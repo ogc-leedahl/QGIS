@@ -93,6 +93,8 @@ class QgsAuthOAuth2Edit : public QgsAuthMethodEdit, private Ui::QgsAuthOAuth2Edi
 
     void updateConfigRegTokenAuthMethod( int indx );
 
+    void updateConfigKeySet( int indx );
+
     void updateConfigRegKeySet( int indx );
 
     void populateRegGrantType();

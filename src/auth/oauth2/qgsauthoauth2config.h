@@ -53,6 +53,7 @@ class QgsAuthOAuth2Config : public QObject
     Q_PROPERTY( QString password READ password WRITE setPassword NOTIFY passwordChanged )
     Q_PROPERTY( QString scope READ scope WRITE setScope NOTIFY scopeChanged )
     Q_PROPERTY( QString apiKey READ apiKey WRITE setApiKey NOTIFY apiKeyChanged )
+    Q_PROPERTY( QString keySet READ keySet WRITE setKeySet NOTIFY keySetChanged )
     Q_PROPERTY( bool persistToken READ persistToken WRITE setPersistToken NOTIFY persistTokenChanged )
     Q_PROPERTY( AccessMethod accessMethod READ accessMethod WRITE setAccessMethod NOTIFY accessMethodChanged )
     Q_PROPERTY( int requestTimeout READ requestTimeout WRITE setRequestTimeout NOTIFY requestTimeoutChanged )
@@ -160,6 +161,9 @@ class QgsAuthOAuth2Config : public QObject
 
     //! API key
     QString apiKey() const { return mApiKey; }
+
+    //! Key Set
+    QString keySet() const { return mKeySet; }
 
     //! Returns TRUE if the token is persistent
     bool persistToken() const { return mPersistToken; }
@@ -346,6 +350,8 @@ class QgsAuthOAuth2Config : public QObject
     void setScope( const QString &value );
     //! Set api key to \a value
     void setApiKey( const QString &value );
+    //! Set key set to \a value
+    void setKeySet( const QString &value );
     // advanced
     //! Set persistent token flag to \a persist
     void setPersistToken( bool persist );
@@ -417,6 +423,8 @@ class QgsAuthOAuth2Config : public QObject
     void scopeChanged( const QString & );
     //! Emitted when configuration API key has changed
     void apiKeyChanged( const QString & );
+    //! Emitted when configuration Key Set has changed
+    void keySetChanged( const QString & );
 
     // advanced
     //! Emitted when configuration persist token flag has changed
@@ -470,6 +478,7 @@ class QgsAuthOAuth2Config : public QObject
     QString mPassword;
     QString mScope;
     QString mApiKey;
+    QString mKeySet;
     bool mPersistToken = false;
     AccessMethod mAccessMethod = AccessMethod::Header;
     int mRequestTimeout = 30 ; // in seconds
