@@ -78,6 +78,15 @@ QgsNewHttpConnection::QgsNewHttpConnection( QWidget *parent, ConnectionTypes typ
            static_cast<void ( QComboBox::* )( int )>( &QComboBox::currentIndexChanged ),
            this, &QgsNewHttpConnection::wfsVersionCurrentIndexChanged );
 
+  cmbKeyChallengeType->clear();
+  cmbKeyChallengeType->addItem( tr( "None" ) );
+  cmbKeyChallengeType->addItem( tr( "Plain" ) );
+  cmbKeyChallengeType->addItem( tr( "SHA 256" ) );
+  cmbKeyChallengeType->setEnabled( false );
+  connect( cmbKeyChallengeType,
+           static_cast<void ( QComboBox::* )( int )>( &QComboBox::currentIndexChanged ),
+           this, &QgsNewHttpConnection::wfsDcsKeyChallengeTypeCurrentIndexChanged );
+
   cmbMediaType->clear();
   cmbMediaType->addItem( tr( "Default" ) );
   cmbMediaType->addItem( tr( "DCS JSON Package with GeoJSON" ) );
@@ -175,12 +184,18 @@ void QgsNewHttpConnection::wfsVersionCurrentIndexChanged( int index )
   txtPageSize->setEnabled( cbxWfsFeaturePaging->isChecked() && ( index == WFS_VERSION_MAX || index >= WFS_VERSION_1_1 ) );
   cbxWfsIgnoreAxisOrientation->setEnabled( index != WFS_VERSION_1_0 && index != WFS_VERSION_API_FEATURES_1_0 );
   cbxWfsInvertAxisOrientation->setEnabled( index != WFS_VERSION_API_FEATURES_1_0 );
+  cmbKeyChallengeType->setEnabled( index == WFS_VERSION_API_FEATURES_1_0 );
   cmbMediaType->setEnabled( index == WFS_VERSION_API_FEATURES_1_0 );
+}
+
+void QgsNewHttpConnection::wfsDcsKeyChallengeTypeCurrentIndexChanged(int index)
+{
+    Q_UNUSED( index );
 }
 
 void QgsNewHttpConnection::wfsOapiMediaTypeCurrentIndexChanged( int index )
 {
-    Q_UNUSED(index)
+    Q_UNUSED( index )
 }
 
 void QgsNewHttpConnection::wfsFeaturePagingStateChanged( int state )
@@ -266,6 +281,11 @@ QComboBox *QgsNewHttpConnection::wfsVersionComboBox()
   return cmbVersion;
 }
 
+QComboBox *QgsNewHttpConnection::wfsDcsKeyChallengeTypeComboBox()
+{
+    return cmbKeyChallengeType;
+}
+
 QComboBox *QgsNewHttpConnection::wfsOapiMediaTypeComboBox()
 {
   return cmbMediaType;
@@ -338,6 +358,14 @@ void QgsNewHttpConnection::updateServiceSpecificSettings()
   else if ( version == QLatin1String( "OGC_API_FEATURES" ) )
     versionIdx = WFS_VERSION_API_FEATURES_1_0;
   cmbVersion->setCurrentIndex( versionIdx );
+
+  QString keyChallengeType = settings.value( wfsKey + "/keyChallengeType" ).toString();
+  int keyChallengeTypeIdx = 0;
+  if ( keyChallengeType == QLatin1String( "plain" ) )
+      keyChallengeTypeIdx = 1;
+  if ( keyChallengeType == QLatin1String( "S256" ) )
+      keyChallengeTypeIdx = 2;
+  cmbKeyChallengeType->setCurrentIndex( keyChallengeTypeIdx );
 
   QString mediaType = settings.value( wfsKey + "/mediaType" ).toString();
   int mediaTypeIdx = 0;
@@ -551,6 +579,22 @@ void QgsNewHttpConnection::accept()
         break;
     }
     settings.setValue( wfsKey + "/version", version );
+
+    QString keyChallengeType;
+    switch( cmbKeyChallengeType->currentIndex() )
+    {
+        case WFS_DCS_KEY_PLAIN:
+            keyChallengeType = QStringLiteral( "plain" );
+            break;
+        case WFS_DCS_KEY_S256:
+            keyChallengeType = QStringLiteral( "S256" );
+            break;
+        case WFS_DCS_KEY_NONE:
+        default:
+            keyChallengeType = QStringLiteral( "none" );
+            break;
+    }
+    settings.setValue( wfsKey + "/keyChallengeType", keyChallengeType );
 
     QString mediaType;
     switch ( cmbMediaType->currentIndex() )

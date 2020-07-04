@@ -99,6 +99,7 @@ class GUI_EXPORT QgsNewHttpConnection : public QDialog, private Ui::QgsNewHttpCo
     void urlChanged( const QString & );
     void updateOkButtonState();
     void wfsVersionCurrentIndexChanged( int index );
+    void wfsDcsKeyChallengeTypeCurrentIndexChanged( int index );
     void wfsOapiMediaTypeCurrentIndexChanged( int index );
     void wfsFeaturePagingStateChanged( int state );
 
@@ -112,6 +113,13 @@ class GUI_EXPORT QgsNewHttpConnection : public QDialog, private Ui::QgsNewHttpCo
       WFS_VERSION_1_1 = 2,
       WFS_VERSION_2_0 = 3,
       WFS_VERSION_API_FEATURES_1_0 = 4,
+    };
+
+    enum WfsDcsKeyChallengeTypeIndex
+    {
+        WFS_DCS_KEY_NONE = 0,
+        WFS_DCS_KEY_PLAIN = 1,
+        WFS_DCS_KEY_S256 = 2
     };
 
     enum WfsOapiMediaTypeIndex
@@ -151,6 +159,12 @@ class GUI_EXPORT QgsNewHttpConnection : public QDialog, private Ui::QgsNewHttpCo
      * \since QGIS 3.2
      */
     QComboBox *wfsVersionComboBox() SIP_SKIP;
+
+    /**
+     * REturns the DCS Key Challenge Type combobox.
+     * Proposed new addition to support Data Centric Security Options.
+     */
+    QComboBox *wfsDcsKeyChallengeTypeComboBox() SIP_SKIP;
 
     /**
      * Returns the "OGC API - Features Media Type combobox.
