@@ -423,7 +423,8 @@ void QgsOapifCollectionsRequest::processReply()
 
 QgsOapifCollectionRequest::QgsOapifCollectionRequest( const QgsDataSourceUri &baseUri, const QString &url ):
   QgsBaseNetworkRequest( QgsAuthorizationSettings( baseUri.username(), baseUri.password(), baseUri.authConfigId() ), tr( "OAPIF" ) ),
-  mUrl( url )
+  mUrl( url ),
+  mBaseUri( baseUri )
 {
   // Using Qt::DirectConnection since the download might be running on a different thread.
   // In this case, the request was sent from the main thread and is executed with the main

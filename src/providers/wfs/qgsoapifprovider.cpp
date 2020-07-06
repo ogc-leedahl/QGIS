@@ -22,6 +22,7 @@
 #include "qgsoapifcollection.h"
 #include "qgsoapifitemsrequest.h"
 #include "qgswfsutils.h" // for isCompatibleType()
+#include "qgswfsconstants.h"
 
 #include <algorithm>
 
@@ -33,7 +34,6 @@ QgsOapifProvider::QgsOapifProvider( const QString &uri, const ProviderOptions &o
   : QgsVectorDataProvider( uri, options ),
     mShared( new QgsOapifSharedData( uri ) )
 {
-
   connect( mShared.get(), &QgsOapifSharedData::raiseError, this, &QgsOapifProvider::pushErrorSlot );
   connect( mShared.get(), &QgsOapifSharedData::extentUpdated, this, &QgsOapifProvider::fullExtentCalculated );
 
@@ -125,8 +125,10 @@ bool QgsOapifProvider::init()
       mShared->mPageSize = 100; // fallback to arbitrary page size
   }
 
-  mShared->mCollectionUrl =
-    landingPageRequest.collectionsUrl() + QStringLiteral( "/" ) + mShared->mURI.typeName();
+  bool secured = apiRequest.paths()[ "/collections/" + mShared->mURI.typeName() ];
+  mShared->mCollectionUrl = landingPageRequest.collectionsUrl() + QStringLiteral( "/" ) + mShared->mURI.typeName();
+  mShared->mCollectionUrl = addKeyChallenge( secured, mShared->mCollectionUrl );
+
   QgsOapifCollectionRequest collectionRequest( mShared->mURI.uri(), mShared->mCollectionUrl );
   if ( !collectionRequest.request( synchronous, forceRefresh ) )
     return false;
@@ -139,9 +141,14 @@ bool QgsOapifProvider::init()
   // Merge contact info from /api
   mLayerMetadata.setContacts( apiRequest.metadata().contacts() );
 
-  mShared->mItemsUrl = mShared->mCollectionUrl +  QStringLiteral( "/items" );
 
-  QgsOapifItemsRequest itemsRequest( mShared->mURI.uri(), mShared->mItemsUrl + QStringLiteral( "?limit=10" ) );
+  secured = apiRequest.paths()[ "/collections/" + mShared->mURI.typeName() + "/items" ];
+  mShared->mItemsUrl = mShared->mCollectionUrl +  QStringLiteral( "/items" );
+  mShared->mItemsUrl = addKeyChallenge( secured, mShared->mItemsUrl );
+
+  QgsOapifItemsRequest itemsRequest( mShared->mURI.uri(), mShared->mItemsUrl +
+    ( secured ? QStringLiteral( "&limit=10" ) : QStringLiteral( "?limit=10" ) ) );
+
   if ( mShared->mCapabilityExtent.isNull() )
   {
     itemsRequest.setComputeBbox();
@@ -169,6 +176,19 @@ bool QgsOapifProvider::init()
   mShared->mWKBType = itemsRequest.wkbType();
 
   return true;
+}
+
+QString QgsOapifProvider::addKeyChallenge( bool secured, const QString &originalUrl )
+{
+  QString url = originalUrl;
+
+  if ( secured )
+  {
+    url += "?" + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE + "=" + mShared->mURI.keyChallengeType();
+    url += '&' + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE + "=" + mShared->mURI.keyChallenge();
+  }
+
+  return url;
 }
 
 void QgsOapifProvider::pushErrorSlot( const QString &errorMsg )

@@ -107,6 +107,18 @@ class QgsWFSDataSourceURI
     //! Returns whether axis orientation should be inverted. Defaults to false
     bool invertAxisOrientation() const;
 
+    //! Returns the key challenge type
+    const QString keyChallengeType() const;
+
+    //! Sets the key challenge type
+    void setKeyChallengeType( const QString &value );
+
+    //! Returns the key challenge text
+    const QString keyChallenge() const;
+
+    //! Sets the key challenge type
+    void setKeyChallenge( const QString &value );
+
     //! For debug purposes. Checks that functions used in sql match functions declared by the server. Defaults to false
     bool validateSqlFunctions() const;
 

@@ -154,6 +154,24 @@ void QgsOapifApiRequest::processReply()
         }
       }
     }
+
+    if ( j.is_object() && j.contains( "paths" ) )
+    {
+        const auto jPaths = j[ "paths" ];
+        if ( jPaths.is_object() )
+        {
+            for ( const auto &item : jPaths.items() )
+            {
+                const auto &jValue = item.value();
+                bool secured = false;
+                if ( jValue.contains( "get" ) && jValue[ "get" ].is_object() ) {
+                    const auto &jGet = jValue["get"];
+                    secured = jGet.contains("security");
+                };
+                mPaths.insert( QString::fromStdString( item.key() ), secured );
+            }
+        }
+    }
   }
   catch ( const json::parse_error &ex )
   {

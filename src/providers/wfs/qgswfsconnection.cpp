@@ -18,6 +18,9 @@
 #include "qgslogger.h"
 #include "qgssettings.h"
 
+#include <cstdlib>
+#include <QCryptographicHash>
+
 QgsWfsConnection::QgsWfsConnection( const QString &connName )
   : QgsOwsConnection( QStringLiteral( "WFS" ), connName )
 {
@@ -51,6 +54,23 @@ QgsWfsConnection::QgsWfsConnection( const QString &connName )
     mUri.removeParam( QgsWFSConstants::URI_PARAM_PAGING_ENABLED ); // setParam allow for duplicates!
     mUri.setParam( QgsWFSConstants::URI_PARAM_PAGING_ENABLED,
                    settings.value( key + "/" + QgsWFSConstants::SETTINGS_PAGING_ENABLED, true ).toBool() ? QStringLiteral( "true" ) : QStringLiteral( "false" ) );
+  }
+
+  if ( settings.contains( key + "/" + QgsWFSConstants::SETTINGS_KEY_CHALLENGE_TYPE ) )
+  {
+    mUri.removeParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE );
+    QString keyChallengeType = settings.value( key + "/" + QgsWFSConstants::SETTINGS_KEY_CHALLENGE_TYPE ).toString();
+    if( keyChallengeType != "none" )
+    {
+      mUri.setParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE, keyChallengeType );
+      int random = rand();
+      if( keyChallengeType == "plain" ) mUri.setParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE, QString::number( random ) );
+      else
+      {
+        QByteArray randomHash = QCryptographicHash::hash( QByteArray::number( random ), QCryptographicHash::Sha256 );
+        mUri.setParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE, randomHash.toBase64( QByteArray::Base64UrlEncoding ) );
+      }
+    }
   }
 
   QgsDebugMsgLevel( QStringLiteral( "WFS full uri: '%1'." ).arg( QString( mUri.uri() ) ), 4 );

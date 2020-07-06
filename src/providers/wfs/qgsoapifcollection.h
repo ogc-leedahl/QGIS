@@ -134,6 +134,8 @@ class QgsOapifCollectionRequest : public QgsBaseNetworkRequest
   private:
     QString mUrl;
 
+    QgsDataSourceUri mBaseUri;
+
     QgsOapifCollection mCollection;
 
     ApplicationLevelError mAppLevelError = ApplicationLevelError::NoError;

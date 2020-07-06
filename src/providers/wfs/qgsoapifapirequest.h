@@ -52,6 +52,9 @@ class QgsOapifApiRequest : public QgsBaseNetworkRequest
     //! Return metadata (mostly contact info)
     const QgsAbstractMetadataBase &metadata() const { return mMetadata; }
 
+    //! Return the list of paths from the open api document.
+    const QMap<QString, bool> &paths() const { return mPaths; }
+
   signals:
     //! emitted when the capabilities have been fully parsed, or an error occurred */
     void gotResponse();
@@ -64,6 +67,8 @@ class QgsOapifApiRequest : public QgsBaseNetworkRequest
 
   private:
     QString mUrl;
+
+    QMap<QString, bool> mPaths;
 
     int mMaxLimit = -1;
 

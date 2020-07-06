@@ -42,7 +42,9 @@ QgsWFSDataSourceURI::QgsWFSDataSourceURI( const QString &uri )
       QgsWFSConstants::URI_PARAM_OUTPUTFORMAT,
       QgsWFSConstants::URI_PARAM_USERNAME,
       QgsWFSConstants::URI_PARAM_PASSWORD,
-      QgsWFSConstants::URI_PARAM_AUTHCFG
+      QgsWFSConstants::URI_PARAM_AUTHCFG,
+      QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE,
+      QgsWFSConstants::URI_PARAM_KEY_CHALLENGE
     };
 
     QUrl url( uri );
@@ -61,6 +63,8 @@ QgsWFSDataSourceURI::QgsWFSDataSourceURI( const QString &uri )
     QString version = query.queryItemValue( QgsWFSConstants::URI_PARAM_VERSION );
     QString filter = query.queryItemValue( QgsWFSConstants::URI_PARAM_FILTER );
     QString outputFormat = query.queryItemValue( QgsWFSConstants::URI_PARAM_OUTPUTFORMAT );
+    QString keyChallengeType = query.queryItemValue( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE );
+    QString keyChallenge = query.queryItemValue( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE );
     mAuth.mAuthCfg = query.queryItemValue( QgsWFSConstants::URI_PARAM_AUTHCFG );
     // NOTE: A defined authcfg overrides any older username/password auth
     //       Only check for older auth if it is undefined
@@ -83,12 +87,21 @@ QgsWFSDataSourceURI::QgsWFSDataSourceURI( const QString &uri )
     }
     url.setQuery( query );
 
+    // Remove keyChallengeType and keyChallenge is the type is none.
+    if ( keyChallengeType.isEmpty() || ( keyChallengeType == "none" ) )
+    {
+      query.removeQueryItem( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE );
+      query.removeQueryItem( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE );
+    }
+
     mURI = QgsDataSourceUri();
     mURI.setParam( QgsWFSConstants::URI_PARAM_URL, url.toEncoded() );
     setTypeName( typeName );
     setSRSName( srsname );
     setVersion( version );
     setOutputFormat( outputFormat );
+    setKeyChallengeType( keyChallengeType );
+    setKeyChallenge( keyChallenge );
 
     //if the xml comes from the dialog, it needs to be a string to pass the validity test
     if ( filter.startsWith( '\'' ) && filter.endsWith( '\'' ) && filter.size() > 1 )
@@ -361,6 +374,30 @@ bool QgsWFSDataSourceURI::ignoreAxisOrientation() const
 bool QgsWFSDataSourceURI::invertAxisOrientation() const
 {
   return mURI.hasParam( QgsWFSConstants::URI_PARAM_INVERTAXISORIENTATION );
+}
+
+const QString QgsWFSDataSourceURI::keyChallengeType() const
+{
+  return mURI.param( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE );
+}
+
+void QgsWFSDataSourceURI::setKeyChallengeType( const QString &value )
+{
+  mURI.removeParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE );
+  if ( !value.isEmpty() )
+    mURI.setParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE, value );
+}
+
+const QString QgsWFSDataSourceURI::keyChallenge() const
+{
+  return mURI.param( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE );
+}
+
+void QgsWFSDataSourceURI::setKeyChallenge( const QString &value )
+{
+  mURI.removeParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE );
+  if ( !value.isEmpty() )
+    mURI.setParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE, value );
 }
 
 bool QgsWFSDataSourceURI::validateSqlFunctions() const

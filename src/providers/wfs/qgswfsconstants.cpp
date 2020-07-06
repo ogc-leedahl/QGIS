@@ -40,6 +40,8 @@ const QString QgsWFSConstants::URI_PARAM_VALIDATESQLFUNCTIONS( QStringLiteral( "
 const QString QgsWFSConstants::URI_PARAM_HIDEDOWNLOADPROGRESSDIALOG( QStringLiteral( "hideDownloadProgressDialog" ) );
 const QString QgsWFSConstants::URI_PARAM_PAGING_ENABLED( "pagingEnabled" );
 const QString QgsWFSConstants::URI_PARAM_PAGE_SIZE( "pageSize" );
+const QString QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE( "key_challenge_method" );
+const QString QgsWFSConstants::URI_PARAM_KEY_CHALLENGE( "key_challenge" );
 
 const QString QgsWFSConstants::VERSION_AUTO( QStringLiteral( "auto" ) );
 
@@ -48,3 +50,5 @@ const QString QgsWFSConstants::SETTINGS_VERSION( QStringLiteral( "version" ) );
 const QString QgsWFSConstants::SETTINGS_MAXNUMFEATURES( QStringLiteral( "maxnumfeatures" ) );
 const QString QgsWFSConstants::SETTINGS_PAGING_ENABLED( QStringLiteral( "pagingenabled" ) );
 const QString QgsWFSConstants::SETTINGS_PAGE_SIZE( QStringLiteral( "pagesize" ) );
+const QString QgsWFSConstants::SETTINGS_KEY_CHALLENGE_TYPE( "keyChallengeType" );
+const QString QgsWFSConstants::SETTINGS_MEDIA_TYPE( "mediaType" );

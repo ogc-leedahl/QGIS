@@ -113,6 +113,8 @@ class QgsOapifProvider final: public QgsVectorDataProvider
      * Invalidates cache of shared object
     */
     void reloadProviderData() override;
+
+    QString addKeyChallenge( bool secured, const QString &originalUrl );
 };
 
 class QgsOapifProviderMetadata final: public QgsProviderMetadata

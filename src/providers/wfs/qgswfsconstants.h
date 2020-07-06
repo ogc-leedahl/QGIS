@@ -48,6 +48,8 @@ struct QgsWFSConstants
   static const QString URI_PARAM_HIDEDOWNLOADPROGRESSDIALOG;
   static const QString URI_PARAM_PAGING_ENABLED;
   static const QString URI_PARAM_PAGE_SIZE;
+  static const QString URI_PARAM_KEY_CHALLENGE_TYPE;
+  static const QString URI_PARAM_KEY_CHALLENGE;
 
   //
   static const QString VERSION_AUTO;
@@ -58,6 +60,8 @@ struct QgsWFSConstants
   static const QString SETTINGS_MAXNUMFEATURES;
   static const QString SETTINGS_PAGING_ENABLED;
   static const QString SETTINGS_PAGE_SIZE;
+  static const QString SETTINGS_KEY_CHALLENGE_TYPE;
+  static const QString SETTINGS_MEDIA_TYPE;
 };
 
 #endif // QGSWFSCONSTANTS_H
