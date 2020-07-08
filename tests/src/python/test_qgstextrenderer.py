@@ -52,14 +52,16 @@ def createEmptyLayer():
 
 class PyQgsTextRenderer(unittest.TestCase):
 
-    def setUp(self):
-        self.report = "<h1>Python QgsTextRenderer Tests</h1>\n"
+    @classmethod
+    def setUpClass(cls):
+        cls.report = "<h1>Python QgsTextRenderer Tests</h1>\n"
         QgsFontUtils.loadStandardTestFonts(['Bold', 'Oblique'])
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         report_file_path = "%s/qgistest.html" % QDir.tempPath()
         with open(report_file_path, 'a') as report_file:
-            report_file.write(self.report)
+            report_file.write(cls.report)
 
     def createBufferSettings(self):
         s = QgsTextBufferSettings()
@@ -896,7 +898,7 @@ class PyQgsTextRenderer(unittest.TestCase):
         self.assertAlmostEqual(metrics2.width(string), 104.15, 1)
 
     def imageCheck(self, name, reference_image, image):
-        self.report += "<h2>Render {}</h2>\n".format(name)
+        PyQgsTextRenderer.report += "<h2>Render {}</h2>\n".format(name)
         temp_dir = QDir.tempPath() + '/'
         file_name = temp_dir + name + ".png"
         image.save(file_name, "PNG")
@@ -906,13 +908,14 @@ class PyQgsTextRenderer(unittest.TestCase):
         checker.setRenderedImage(file_name)
         checker.setColorTolerance(2)
         result = checker.compareImages(name, 20)
-        self.report += checker.report()
+        PyQgsTextRenderer.report += checker.report()
         print(checker.report())
         return result
 
     def checkRender(self, format, name, part=None, angle=0, alignment=QgsTextRenderer.AlignLeft,
                     text=['test'],
-                    rect=QRectF(100, 100, 50, 250)):
+                    rect=QRectF(100, 100, 50, 250),
+                    vAlignment=QgsTextRenderer.AlignTop):
 
         image = QImage(400, 400, QImage.Format_RGB32)
 
@@ -923,6 +926,7 @@ class PyQgsTextRenderer(unittest.TestCase):
         context = QgsRenderContext.fromMapSettings(ms)
         context.setPainter(painter)
         context.setScaleFactor(96 / 25.4)  # 96 DPI
+        context.setFlag(QgsRenderContext.ApplyScalingWorkaroundForTextRendering, True)
 
         painter.begin(image)
         painter.setRenderHint(QPainter.Antialiasing)
@@ -947,7 +951,7 @@ class PyQgsTextRenderer(unittest.TestCase):
                                      alignment,
                                      text,
                                      context,
-                                     format)
+                                     format, vAlignment=vAlignment)
 
         painter.setFont(format.scaledFont(context))
         painter.setPen(QPen(QColor(255, 0, 255, 200)))
@@ -2122,6 +2126,42 @@ class PyQgsTextRenderer(unittest.TestCase):
         format.setSizeUnit(QgsUnitTypes.RenderPoints)
         assert self.checkRender(format, 'text_rect_right_aligned', text=['test'],
                                 alignment=QgsTextRenderer.AlignRight, rect=QRectF(100, 100, 200, 100))
+
+    def testDrawTextRectMultilineBottomAlign(self):
+        format = QgsTextFormat()
+        format.setFont(getTestFont('bold'))
+        format.setSize(30)
+        format.setSizeUnit(QgsUnitTypes.RenderPoints)
+
+        assert self.checkRender(format, 'text_rect_multiline_bottom_aligned', text=['test', 'bottom', 'aligned'],
+                                alignment=QgsTextRenderer.AlignLeft, rect=QRectF(100, 100, 200, 100), vAlignment=QgsTextRenderer.AlignBottom)
+
+    def testDrawTextRectBottomAlign(self):
+        format = QgsTextFormat()
+        format.setFont(getTestFont('bold'))
+        format.setSize(30)
+        format.setSizeUnit(QgsUnitTypes.RenderPoints)
+
+        assert self.checkRender(format, 'text_rect_bottom_aligned', text=['bottom aligned'],
+                                alignment=QgsTextRenderer.AlignLeft, rect=QRectF(100, 100, 200, 100), vAlignment=QgsTextRenderer.AlignBottom)
+
+    def testDrawTextRectMultilineVCenterAlign(self):
+        format = QgsTextFormat()
+        format.setFont(getTestFont('bold'))
+        format.setSize(30)
+        format.setSizeUnit(QgsUnitTypes.RenderPoints)
+
+        assert self.checkRender(format, 'text_rect_multiline_vcenter_aligned', text=['test', 'center', 'aligned'],
+                                alignment=QgsTextRenderer.AlignLeft, rect=QRectF(100, 100, 200, 100), vAlignment=QgsTextRenderer.AlignVCenter)
+
+    def testDrawTextRectVCenterAlign(self):
+        format = QgsTextFormat()
+        format.setFont(getTestFont('bold'))
+        format.setSize(30)
+        format.setSizeUnit(QgsUnitTypes.RenderPoints)
+
+        assert self.checkRender(format, 'text_rect_vcenter_aligned', text=['center aligned'],
+                                alignment=QgsTextRenderer.AlignLeft, rect=QRectF(100, 100, 200, 100), vAlignment=QgsTextRenderer.AlignVCenter)
 
     def testDrawTextRectMultilineCenterAlign(self):
         format = QgsTextFormat()

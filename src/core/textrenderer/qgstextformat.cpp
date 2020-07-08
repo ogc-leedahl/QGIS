@@ -64,12 +64,22 @@ QFont QgsTextFormat::font() const
   return d->textFont;
 }
 
-QFont QgsTextFormat::scaledFont( const QgsRenderContext &context ) const
+QFont QgsTextFormat::scaledFont( const QgsRenderContext &context, double scaleFactor ) const
 {
   QFont font = d->textFont;
-  int fontPixelSize = QgsTextRenderer::sizeToPixel( d->fontSize, context, d->fontSizeUnits,
-                      d->fontSizeMapUnitScale );
-  font.setPixelSize( fontPixelSize );
+  if ( scaleFactor == 1 )
+  {
+    int fontPixelSize = QgsTextRenderer::sizeToPixel( d->fontSize, context, d->fontSizeUnits,
+                        d->fontSizeMapUnitScale );
+    font.setPixelSize( fontPixelSize );
+  }
+  else
+  {
+    double fontPixelSize = context.convertToPainterUnits( d->fontSize, d->fontSizeUnits, d->fontSizeMapUnitScale );
+    font.setPixelSize( std::round( scaleFactor * fontPixelSize + 0.5 ) );
+    font.setLetterSpacing( QFont::AbsoluteSpacing, d->textFont.letterSpacing() * scaleFactor );
+    font.setWordSpacing( d->textFont.wordSpacing() * scaleFactor );
+  }
   return font;
 }
 
@@ -821,6 +831,7 @@ QPixmap QgsTextFormat::textFormatPreviewPixmap( const QgsTextFormat &format, QSi
 
   context.setScaleFactor( QgsApplication::desktop()->logicalDpiX() / 25.4 );
   context.setUseAdvancedEffects( true );
+  context.setFlag( QgsRenderContext::Antialiasing, true );
   context.setPainter( &painter );
 
   // slightly inset text to account for buffer/background
