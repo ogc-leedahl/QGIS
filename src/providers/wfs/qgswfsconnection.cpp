@@ -68,7 +68,8 @@ QgsWfsConnection::QgsWfsConnection( const QString &connName )
       else
       {
         QByteArray randomHash = QCryptographicHash::hash( QByteArray::number( random ), QCryptographicHash::Sha256 );
-        mUri.setParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE, randomHash.toBase64( QByteArray::Base64UrlEncoding ) );
+        mUri.setParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE,
+            randomHash.toBase64( QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals ) );
       }
     }
   }

@@ -230,6 +230,8 @@ class QgsOapifFeatureDownloaderImpl final: public QObject, public QgsFeatureDown
     QgsOapifSharedData *mShared = nullptr;
 
     int mNumberMatched = -1;
+
+    QString addKeyChallenge( bool secured, const QString &originalUrl );
 };
 
 

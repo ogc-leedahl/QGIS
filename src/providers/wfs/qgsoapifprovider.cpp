@@ -141,13 +141,15 @@ bool QgsOapifProvider::init()
   // Merge contact info from /api
   mLayerMetadata.setContacts( apiRequest.metadata().contacts() );
 
+  // Add Max Features
+  mShared->mItemsUrl += QStringLiteral( "?limit=10" );
 
+  // Add Key challenge
   secured = apiRequest.paths()[ "/collections/" + mShared->mURI.typeName() + "/items" ];
   mShared->mItemsUrl = mShared->mCollectionUrl +  QStringLiteral( "/items" );
   mShared->mItemsUrl = addKeyChallenge( secured, mShared->mItemsUrl );
 
-  QgsOapifItemsRequest itemsRequest( mShared->mURI.uri(), mShared->mItemsUrl +
-    ( secured ? QStringLiteral( "&limit=10" ) : QStringLiteral( "?limit=10" ) ) );
+  QgsOapifItemsRequest itemsRequest( mShared->mURI.uri(), mShared->mItemsUrl );
 
   if ( mShared->mCapabilityExtent.isNull() )
   {
@@ -184,7 +186,8 @@ QString QgsOapifProvider::addKeyChallenge( bool secured, const QString &original
 
   if ( secured )
   {
-    url += "?" + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE + "=" + mShared->mURI.keyChallengeType();
+    QString query = url.contains( "?") ? "&" : "?";
+    url += query + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE + "=" + mShared->mURI.keyChallengeType();
     url += '&' + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE + "=" + mShared->mURI.keyChallenge();
   }
 
@@ -613,6 +616,20 @@ void QgsOapifFeatureDownloaderImpl::createProgressDialog()
   CONNECT_PROGRESS_DIALOG( QgsOapifFeatureDownloaderImpl );
 }
 
+QString QgsOapifFeatureDownloaderImpl::addKeyChallenge( bool secured, const QString &originalUrl )
+{
+  QString url = originalUrl;
+
+  if ( secured )
+  {
+    QString query = url.contains( "?") ? "&" : "?";
+    url += query + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE + "=" + mShared->mURI.keyChallengeType();
+    url += '&' + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE + "=" + mShared->mURI.keyChallenge();
+  }
+
+  return url;
+}
+
 void QgsOapifFeatureDownloaderImpl::run( bool serializeFeatures, int maxFeatures )
 {
   QEventLoop loop;
@@ -652,13 +669,19 @@ void QgsOapifFeatureDownloaderImpl::run( bool serializeFeatures, int maxFeatures
       maxFeaturesThisRequest = mShared->mPageSize;
     }
   }
-  url = mShared->mItemsUrl;
+  int queryPos = mShared->mItemsUrl.indexOf( "?" );
+  url = queryPos > 0 ? mShared->mItemsUrl.left( queryPos ) : mShared->mItemsUrl;
   bool hasQueryParam = false;
   if ( maxFeaturesThisRequest > 0 )
   {
     url += QStringLiteral( "?limit=%1" ).arg( maxFeaturesThisRequest );
     hasQueryParam = true;
   }
+
+  // Add Key challenge
+  bool secured = mShared->mItemsUrl.contains( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE );
+  url = addKeyChallenge( secured, url );
+  hasQueryParam = hasQueryParam || secured;
 
   if ( !mShared->mServerFilter.isEmpty() )
   {
