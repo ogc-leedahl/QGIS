@@ -63,6 +63,110 @@ class PyQgsTextRenderer(unittest.TestCase):
         with open(report_file_path, 'a') as report_file:
             report_file.write(cls.report)
 
+    def testValid(self):
+        t = QgsTextFormat()
+        self.assertFalse(t.isValid())
+
+        tt = QgsTextFormat(t)
+        self.assertFalse(tt.isValid())
+
+        t.setValid()
+        self.assertTrue(t.isValid())
+        tt = QgsTextFormat(t)
+        self.assertTrue(tt.isValid())
+
+        doc = QDomDocument()
+        elem = t.writeXml(doc, QgsReadWriteContext())
+        parent = doc.createElement("settings")
+        parent.appendChild(elem)
+        t3 = QgsTextFormat()
+        t3.readXml(parent, QgsReadWriteContext())
+        self.assertTrue(t3.isValid())
+
+        t = QgsTextFormat()
+        t.buffer().setEnabled(True)
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.background().setEnabled(True)
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.shadow().setEnabled(True)
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.mask().setEnabled(True)
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.font()
+        self.assertFalse(t.isValid())
+        t.setFont(QFont())
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.setNamedStyle('Bold')
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.setSize(20)
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.setSizeUnit(QgsUnitTypes.RenderPixels)
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.setSizeMapUnitScale(QgsMapUnitScale(5, 10))
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.setColor(QColor(255, 0, 0))
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.setOpacity(0.2)
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.setBlendMode(QPainter.CompositionMode_Darken)
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.setLineHeight(20)
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.setOrientation(QgsTextFormat.VerticalOrientation)
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.setAllowHtmlFormatting(True)
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.setPreviewBackgroundColor(QColor(255, 0, 0))
+        self.assertTrue(t.isValid())
+
+        t = QgsTextFormat()
+        t.dataDefinedProperties().setProperty(QgsPalLayerSettings.Bold, QgsProperty.fromValue(True))
+        self.assertTrue(t.isValid())
+
+    def testAlignmentConversion(self):
+        self.assertEqual(QgsTextRenderer.convertQtHAlignment(Qt.AlignLeft), QgsTextRenderer.AlignLeft)
+        self.assertEqual(QgsTextRenderer.convertQtHAlignment(Qt.AlignRight), QgsTextRenderer.AlignRight)
+        self.assertEqual(QgsTextRenderer.convertQtHAlignment(Qt.AlignHCenter), QgsTextRenderer.AlignCenter)
+        self.assertEqual(QgsTextRenderer.convertQtHAlignment(Qt.AlignJustify), QgsTextRenderer.AlignJustify)
+        # not supported, should fallback to left
+        self.assertEqual(QgsTextRenderer.convertQtHAlignment(Qt.AlignAbsolute), QgsTextRenderer.AlignLeft)
+
+        self.assertEqual(QgsTextRenderer.convertQtVAlignment(Qt.AlignTop), QgsTextRenderer.AlignTop)
+        self.assertEqual(QgsTextRenderer.convertQtVAlignment(Qt.AlignBottom), QgsTextRenderer.AlignBottom)
+        self.assertEqual(QgsTextRenderer.convertQtVAlignment(Qt.AlignVCenter), QgsTextRenderer.AlignVCenter)
+        # note supported, should fallback to bottom
+        self.assertEqual(QgsTextRenderer.convertQtVAlignment(Qt.AlignBaseline), QgsTextRenderer.AlignBottom)
+
     def createBufferSettings(self):
         s = QgsTextBufferSettings()
         s.setEnabled(True)
@@ -75,6 +179,46 @@ class PyQgsTextRenderer(unittest.TestCase):
         s.setJoinStyle(Qt.RoundJoin)
         s.setBlendMode(QPainter.CompositionMode_DestinationAtop)
         return s
+
+    def testBufferEquality(self):
+        s = self.createBufferSettings()
+        s2 = self.createBufferSettings()
+        self.assertEqual(s, s2)
+
+        s.setEnabled(False)
+        self.assertNotEqual(s, s2)
+        s = self.createBufferSettings()
+
+        s.setSize(15)
+        self.assertNotEqual(s, s2)
+        s = self.createBufferSettings()
+
+        s.setSizeUnit(QgsUnitTypes.RenderPixels)
+        self.assertNotEqual(s, s2)
+        s = self.createBufferSettings()
+
+        s.setSizeMapUnitScale(QgsMapUnitScale(11, 12))
+        self.assertNotEqual(s, s2)
+        s = self.createBufferSettings()
+
+        s.setColor(QColor(255, 255, 0))
+        self.assertNotEqual(s, s2)
+        s = self.createBufferSettings()
+
+        s.setFillBufferInterior(False)
+        self.assertNotEqual(s, s2)
+        s = self.createBufferSettings()
+
+        s.setOpacity(0.6)
+        self.assertNotEqual(s, s2)
+        s = self.createBufferSettings()
+
+        s.setJoinStyle(Qt.MiterJoin)
+        self.assertNotEqual(s, s2)
+        s = self.createBufferSettings()
+
+        s.setBlendMode(QPainter.CompositionMode_Darken)
+        self.assertNotEqual(s, s2)
 
     def checkBufferSettings(self, s):
         """ test QgsTextBufferSettings """
@@ -132,6 +276,39 @@ class PyQgsTextRenderer(unittest.TestCase):
         s.setMaskedSymbolLayers([QgsSymbolLayerReference("layerid1", QgsSymbolLayerId("symbol", 1)),
                                  QgsSymbolLayerReference("layerid2", QgsSymbolLayerId("symbol2", 2))])
         return s
+
+    def testMaskEquality(self):
+        s = self.createMaskSettings()
+        s2 = self.createMaskSettings()
+        self.assertEqual(s, s2)
+
+        s.setEnabled(False)
+        self.assertNotEqual(s, s2)
+        s = self.createMaskSettings()
+
+        s.setSize(15)
+        self.assertNotEqual(s, s2)
+        s = self.createMaskSettings()
+
+        s.setSizeUnit(QgsUnitTypes.RenderPixels)
+        self.assertNotEqual(s, s2)
+        s = self.createMaskSettings()
+
+        s.setSizeMapUnitScale(QgsMapUnitScale(11, 12))
+        self.assertNotEqual(s, s2)
+        s = self.createMaskSettings()
+
+        s.setOpacity(0.6)
+        self.assertNotEqual(s, s2)
+        s = self.createMaskSettings()
+
+        s.setJoinStyle(Qt.MiterJoin)
+        self.assertNotEqual(s, s2)
+        s = self.createMaskSettings()
+
+        s.setMaskedSymbolLayers([QgsSymbolLayerReference("layerid11", QgsSymbolLayerId("symbol", 1)),
+                                 QgsSymbolLayerReference("layerid21", QgsSymbolLayerId("symbol2", 2))])
+        self.assertNotEqual(s, s2)
 
     def checkMaskSettings(self, s):
         """ test QgsTextMaskSettings """
@@ -202,6 +379,102 @@ class PyQgsTextRenderer(unittest.TestCase):
         s.setMarkerSymbol(marker)
 
         return s
+
+    def testBackgroundEquality(self):
+        s = self.createBackgroundSettings()
+        s2 = self.createBackgroundSettings()
+        self.assertEqual(s, s2)
+
+        s.setEnabled(False)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setType(QgsTextBackgroundSettings.ShapeRectangle)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setSvgFile('svg2.svg')
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setSizeType(QgsTextBackgroundSettings.SizeFixed)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setSize(QSizeF(1, 22))
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setSizeUnit(QgsUnitTypes.RenderPixels)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setSizeMapUnitScale(QgsMapUnitScale(11, 22))
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setRotationType(QgsTextBackgroundSettings.RotationSync)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setRotation(145)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setOffset(QPointF(31, 41))
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setOffsetUnit(QgsUnitTypes.RenderPixels)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setOffsetMapUnitScale(QgsMapUnitScale(15, 16))
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setRadii(QSizeF(111, 112))
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setRadiiUnit(QgsUnitTypes.RenderPoints)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setRadiiMapUnitScale(QgsMapUnitScale(151, 161))
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setFillColor(QColor(255, 255, 0))
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setStrokeColor(QColor(0, 255, 255))
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setOpacity(0.6)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setJoinStyle(Qt.MiterJoin)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setBlendMode(QPainter.CompositionMode_Darken)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setStrokeWidth(17)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setStrokeWidthUnit(QgsUnitTypes.RenderPixels)
+        self.assertNotEqual(s, s2)
+        s = self.createBackgroundSettings()
+
+        s.setStrokeWidthMapUnitScale(QgsMapUnitScale(QgsMapUnitScale(251, 261)))
+        self.assertNotEqual(s, s2)
 
     def checkBackgroundSettings(self, s):
         """ test QgsTextBackgroundSettings """
@@ -276,6 +549,70 @@ class PyQgsTextRenderer(unittest.TestCase):
         s.setScale(123)
         s.setBlendMode(QPainter.CompositionMode_DestinationAtop)
         return s
+
+    def testShadowEquality(self):
+        s = self.createShadowSettings()
+        s2 = self.createShadowSettings()
+        self.assertEqual(s, s2)
+
+        s.setEnabled(False)
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setShadowPlacement(QgsTextShadowSettings.ShadowText)
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setOffsetAngle(145)
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setOffsetDistance(175)
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setOffsetUnit(QgsUnitTypes.RenderPixels)
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setOffsetMapUnitScale(QgsMapUnitScale(15, 16))
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setOffsetGlobal(False)
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setBlurRadius(21)
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setBlurRadiusUnit(QgsUnitTypes.RenderPoints)
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setBlurRadiusMapUnitScale(QgsMapUnitScale(115, 116))
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setBlurAlphaOnly(False)
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setColor(QColor(255, 255, 0))
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setOpacity(0.6)
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setScale(23)
+        self.assertNotEqual(s, s2)
+        s = self.createShadowSettings()
+
+        s.setBlendMode(QPainter.CompositionMode_Darken)
+        self.assertNotEqual(s, s2)
 
     def checkShadowSettings(self, s):
         """ test QgsTextShadowSettings """
@@ -357,6 +694,96 @@ class PyQgsTextRenderer(unittest.TestCase):
         s.setAllowHtmlFormatting(True)
         s.dataDefinedProperties().setProperty(QgsPalLayerSettings.Bold, QgsProperty.fromExpression('1>2'))
         return s
+
+    def testFormatEquality(self):
+        s = self.createFormatSettings()
+        s2 = self.createFormatSettings()
+        self.assertEqual(s, s2)
+
+        s.buffer().setEnabled(False)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.buffer().setSize(12)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.mask().setEnabled(False)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.mask().setSize(12)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.background().setEnabled(False)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.background().setSvgFile('test2.svg')
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.shadow().setEnabled(False)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.shadow().setOffsetAngle(123)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        font = getTestFont()
+        font.setKerning(True)
+        s.setFont(font)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.setNamedStyle('Bold')
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.setSize(15)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.setSizeUnit(QgsUnitTypes.RenderPixels)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.setSizeMapUnitScale(QgsMapUnitScale(11, 12))
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.setColor(QColor(255, 255, 0))
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.setOpacity(0.6)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.setBlendMode(QPainter.CompositionMode_Darken)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.setLineHeight(15)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.setPreviewBackgroundColor(QColor(100, 250, 200))
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.setOrientation(QgsTextFormat.HorizontalOrientation)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.setAllowHtmlFormatting(False)
+        self.assertNotEqual(s, s2)
+        s = self.createFormatSettings()
+
+        s.dataDefinedProperties().setProperty(QgsPalLayerSettings.Bold, QgsProperty.fromExpression('1>3'))
+        self.assertNotEqual(s, s2)
 
     def checkTextFormat(self, s):
         """ test QgsTextFormat """
@@ -2127,6 +2554,25 @@ class PyQgsTextRenderer(unittest.TestCase):
         assert self.checkRender(format, 'text_rect_right_aligned', text=['test'],
                                 alignment=QgsTextRenderer.AlignRight, rect=QRectF(100, 100, 200, 100))
 
+    def testDrawTextRectMultilineJustifyAlign(self):
+        format = QgsTextFormat()
+        format.setFont(getTestFont('bold'))
+        format.setSize(30)
+        format.setSizeUnit(QgsUnitTypes.RenderPoints)
+        format.buffer().setEnabled(True)
+        format.buffer().setSize(4)
+        format.buffer().setSizeUnit(QgsUnitTypes.RenderMillimeters)
+        assert self.checkRender(format, 'text_rect_multiline_justify_aligned', text=['a t est', 'off', 'justification', 'align'],
+                                alignment=QgsTextRenderer.AlignJustify, rect=QRectF(100, 100, 200, 100))
+
+    def testDrawTextRectJustifyAlign(self):
+        format = QgsTextFormat()
+        format.setFont(getTestFont('bold'))
+        format.setSize(30)
+        format.setSizeUnit(QgsUnitTypes.RenderPoints)
+        assert self.checkRender(format, 'text_rect_justify_aligned', text=['test'],
+                                alignment=QgsTextRenderer.AlignJustify, rect=QRectF(100, 100, 200, 100))
+
     def testDrawTextRectMultilineBottomAlign(self):
         format = QgsTextFormat()
         format.setFont(getTestFont('bold'))
@@ -2203,6 +2649,22 @@ class PyQgsTextRenderer(unittest.TestCase):
         format.setSizeUnit(QgsUnitTypes.RenderPoints)
         assert self.checkRenderPoint(format, 'text_point_right_aligned', text=['test'],
                                      alignment=QgsTextRenderer.AlignRight, point=QPointF(300, 200))
+
+    def testDrawTextPointJustifyAlign(self):
+        format = QgsTextFormat()
+        format.setFont(getTestFont('bold'))
+        format.setSize(30)
+        format.setSizeUnit(QgsUnitTypes.RenderPoints)
+        assert self.checkRenderPoint(format, 'text_point_justify_aligned', text=['test'],
+                                     alignment=QgsTextRenderer.AlignJustify, point=QPointF(100, 200))
+
+    def testDrawTextPointMultilineJustifyAlign(self):
+        format = QgsTextFormat()
+        format.setFont(getTestFont('bold'))
+        format.setSize(30)
+        format.setSizeUnit(QgsUnitTypes.RenderPoints)
+        assert self.checkRenderPoint(format, 'text_point_justify_multiline_aligned', text=['a t est', 'off', 'justification', 'align'],
+                                     alignment=QgsTextRenderer.AlignJustify, point=QPointF(100, 200))
 
     def testDrawTextPointCenterAlign(self):
         format = QgsTextFormat()

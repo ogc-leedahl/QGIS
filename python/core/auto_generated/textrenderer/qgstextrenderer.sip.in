@@ -44,7 +44,17 @@ and background shapes.
       AlignLeft,
       AlignCenter,
       AlignRight,
+      AlignJustify,
     };
+
+    static HAlignment convertQtHAlignment( Qt::Alignment alignment );
+%Docstring
+Converts a Qt horizontal ``alignment`` flag to a QgsTextRenderer.HAlignment value.
+
+.. seealso:: :py:func:`convertQtVAlignment`
+
+.. versionadded:: 3.16
+%End
 
     enum VAlignment
     {
@@ -52,6 +62,15 @@ and background shapes.
       AlignVCenter,
       AlignBottom,
     };
+
+    static VAlignment convertQtVAlignment( Qt::Alignment alignment );
+%Docstring
+Converts a Qt vertical ``alignment`` flag to a QgsTextRenderer.VAlignment value.
+
+.. seealso:: :py:func:`convertQtHAlignment`
+
+.. versionadded:: 3.16
+%End
 
     static int sizeToPixel( double size, const QgsRenderContext &c, QgsUnitTypes::RenderUnit unit, const QgsMapUnitScale &mapUnitScale = QgsMapUnitScale() );
 %Docstring

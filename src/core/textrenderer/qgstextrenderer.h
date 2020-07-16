@@ -20,10 +20,10 @@
 #include "qgis_core.h"
 #include "qgstextblock.h"
 #include "qgsrendercontext.h"
+#include "qgstextformat.h"
 
 #include <QPicture>
 
-class QgsTextFormat;
 class QgsTextDocument;
 
 /**
@@ -60,7 +60,16 @@ class CORE_EXPORT QgsTextRenderer
       AlignLeft = 0, //!< Left align
       AlignCenter, //!< Center align
       AlignRight, //!< Right align
+      AlignJustify, //!< Justify align
     };
+
+    /**
+     * Converts a Qt horizontal \a alignment flag to a QgsTextRenderer::HAlignment value.
+     *
+     * \see convertQtVAlignment()
+     * \since QGIS 3.16
+     */
+    static HAlignment convertQtHAlignment( Qt::Alignment alignment );
 
     /**
      * Vertical alignment
@@ -72,6 +81,14 @@ class CORE_EXPORT QgsTextRenderer
       AlignVCenter, //!< Center align
       AlignBottom, //!< Align to bottom
     };
+
+    /**
+     * Converts a Qt vertical \a alignment flag to a QgsTextRenderer::VAlignment value.
+     *
+     * \see convertQtHAlignment()
+     * \since QGIS 3.16
+     */
+    static VAlignment convertQtVAlignment( Qt::Alignment alignment );
 
     /**
      * Calculates pixel size (considering output size should be in pixel or map units, scale factors and optionally oversampling)
@@ -254,6 +271,11 @@ class CORE_EXPORT QgsTextRenderer
       double dpiRatio = 1.0;
       //! Horizontal alignment
       HAlignment hAlign = AlignLeft;
+
+      //! Any additional word spacing to apply while rendering component
+      double extraWordSpacing = 0;
+      //! Any additional letter spacing to apply while rendering component
+      double extraLetterSpacing = 0;
     };
 
     static double textWidth( const QgsRenderContext &context, const QgsTextFormat &format, const QgsTextDocument &document );
@@ -327,6 +349,35 @@ class CORE_EXPORT QgsTextRenderer
                                   HAlignment alignment,
                                   VAlignment vAlignment,
                                   DrawMode mode = Rect );
+
+    static QgsTextFormat::TextOrientation calculateRotationAndOrientationForComponent( const QgsTextFormat &format, const Component &component, double &rotation );
+
+    static void calculateExtraSpacingForLineJustification( double spaceToDistribute, const QgsTextBlock &block, double &extraWordSpace, double &extraLetterSpace );
+    static void applyExtraSpacingForLineJustification( QFont &font, double extraWordSpace, double extraLetterSpace );
+
+    static void drawTextInternalHorizontal( QgsRenderContext &context,
+                                            const QgsTextFormat &format,
+                                            TextPart drawType,
+                                            DrawMode mode,
+                                            const Component &component,
+                                            const QgsTextDocument &document,
+                                            double fontScale,
+                                            const QFontMetricsF *fontMetrics,
+                                            HAlignment hAlignment,
+                                            VAlignment vAlignment,
+                                            double rotation );
+
+    static void drawTextInternalVertical( QgsRenderContext &context,
+                                          const QgsTextFormat &format,
+                                          TextPart drawType,
+                                          DrawMode mode,
+                                          const Component &component,
+                                          const QgsTextDocument &document,
+                                          double fontScale,
+                                          const QFontMetricsF *fontMetrics,
+                                          HAlignment hAlignment,
+                                          VAlignment vAlignment,
+                                          double rotation );
 
     friend class QgsVectorLayerLabelProvider;
     friend class QgsLabelPreview;
