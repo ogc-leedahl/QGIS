@@ -155,7 +155,7 @@ bool QgsOapifProvider::init()
   {
     itemsRequest.setComputeBbox();
   }
-  if ( !itemsRequest.request( synchronous, forceRefresh ) )
+  if ( !itemsRequest.request( synchronous, forceRefresh, mShared->mediaType() ) )
     return false;
   if ( itemsRequest.errorCode() != QgsBaseNetworkRequest::NoError )
     return false;
@@ -367,6 +367,8 @@ QgsOapifSharedData::QgsOapifSharedData( const QString &uri )
   , mURI( uri )
 {
   mHideProgressDialog = mURI.hideDownloadProgressDialog();
+
+  mMediaType = mURI.mediaType();
 }
 
 QgsOapifSharedData::~QgsOapifSharedData()
@@ -724,7 +726,7 @@ void QgsOapifFeatureDownloaderImpl::run( bool serializeFeatures, int maxFeatures
 
     QgsOapifItemsRequest itemsRequest( mShared->mURI.uri(), url );
     connect( &itemsRequest, &QgsOapifItemsRequest::gotResponse, &loop, &QEventLoop::quit );
-    itemsRequest.request( false /* synchronous*/, true /* forceRefresh */ );
+    itemsRequest.request( false /* synchronous*/, true /* forceRefresh */, mShared->mediaType() );
     loop.exec( QEventLoop::ExcludeUserInputEvents );
     if ( mStop )
     {

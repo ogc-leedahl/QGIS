@@ -37,9 +37,9 @@ QgsOapifItemsRequest::QgsOapifItemsRequest( const QgsDataSourceUri &baseUri, con
   connect( this, &QgsBaseNetworkRequest::downloadFinished, this, &QgsOapifItemsRequest::processReply, Qt::DirectConnection );
 }
 
-bool QgsOapifItemsRequest::request( bool synchronous, bool forceRefresh )
+bool QgsOapifItemsRequest::request( bool synchronous, bool forceRefresh, const QString &mediaType )
 {
-  if ( !sendGET( QUrl( mUrl ), QString( "application/geo+json, application/json" ), synchronous, forceRefresh ) )
+  if ( !sendGET( QUrl( mUrl ), mediaType, synchronous, forceRefresh ) )
   {
     emit gotResponse();
     return false;
@@ -75,6 +75,7 @@ void QgsOapifItemsRequest::processReply()
   Q_ASSERT( codec );
 
   const QString utf8Text = codec->toUnicode( buffer.constData(), buffer.size(), &state );
+  qDebug() << utf8Text;
   if ( state.invalidChars != 0 )
   {
     mErrorCode = QgsBaseNetworkRequest::ApplicationLevelError;

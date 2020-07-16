@@ -88,7 +88,7 @@ QgsNewHttpConnection::QgsNewHttpConnection( QWidget *parent, ConnectionTypes typ
            this, &QgsNewHttpConnection::wfsDcsKeyChallengeTypeCurrentIndexChanged );
 
   cmbMediaType->clear();
-  cmbMediaType->addItem( tr( "Default" ) );
+  cmbMediaType->addItem( tr( "GeoJSON Feature Class" ) );
   cmbMediaType->addItem( tr( "DCS JSON Package with GeoJSON" ) );
   cmbMediaType->addItem( tr( "GeoJSON with DCS JSON Packaged Features" ) );
   cmbMediaType->setEnabled( false );
@@ -369,9 +369,9 @@ void QgsNewHttpConnection::updateServiceSpecificSettings()
 
   QString mediaType = settings.value( wfsKey + "/mediaType" ).toString();
   int mediaTypeIdx = 0;
-  if ( mediaType == QLatin1String( "dcs_geojson" ) )
+  if ( mediaType == QLatin1String( "application/stanag+jws" ) )
       mediaTypeIdx = 1;
-  if ( mediaType == QLatin1String( "geojson_dcs" ) )
+  if ( mediaType == QLatin1String( "application/geo+json; profile=NATO:4778" ) )
       mediaTypeIdx = 2;
   cmbMediaType->setCurrentIndex( mediaTypeIdx );
 
@@ -600,10 +600,10 @@ void QgsNewHttpConnection::accept()
     switch ( cmbMediaType->currentIndex() )
     {
         case WFS_MEDIA_DCS_GEOJSON:
-            mediaType = QStringLiteral( "dcs_geojson" );
+            mediaType = QStringLiteral( "application/stanag+jws" );
             break;
         case WFS_MEDIA_GEOJSON_DCS:
-            mediaType = QStringLiteral( "geojson_dcs" );
+            mediaType = QStringLiteral( "application/geo+json; profile=NATO:4778" );
             break;
         case WFS_MEDIA_DEFAULT:
         default:

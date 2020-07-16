@@ -37,7 +37,7 @@ class QgsOapifItemsRequest : public QgsBaseNetworkRequest
     void setComputeBbox() { mComputeBbox = true; }
 
     //! Issue the request
-    bool request( bool synchronous, bool forceRefresh );
+    bool request( bool synchronous, bool forceRefresh, const QString &mediaType );
 
     //! Application level error
     enum class ApplicationLevelError

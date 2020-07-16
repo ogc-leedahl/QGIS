@@ -141,6 +141,8 @@ class QgsOapifSharedData final: public QObject, public QgsBackgroundCachedShared
 
     bool isRestrictedToRequestBBOX() const override;
 
+    const QString mediaType() const { return mMediaType; }
+
   signals:
 
     //! Raise error
@@ -170,6 +172,9 @@ class QgsOapifSharedData final: public QObject, public QgsBackgroundCachedShared
 
     //! Server filter
     QString mServerFilter;
+
+    //! Media Type
+    QString mMediaType;
 
     //! Translation state of filter to server-side filter.
     QgsOapifProvider::FilterTranslationState mFilterTranslationState = QgsOapifProvider::FilterTranslationState::FULLY_CLIENT;

@@ -66,6 +66,8 @@ QgsWFSDataSourceURI::QgsWFSDataSourceURI( const QString &uri )
     QString keyChallengeType = query.queryItemValue( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE );
     QString keyChallenge = query.queryItemValue( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE );
     mAuth.mAuthCfg = query.queryItemValue( QgsWFSConstants::URI_PARAM_AUTHCFG );
+    mMediaType = query.queryItemValue( QgsWFSConstants::SETTINGS_MEDIA_TYPE );
+
     // NOTE: A defined authcfg overrides any older username/password auth
     //       Only check for older auth if it is undefined
     if ( mAuth.mAuthCfg.isEmpty() )
@@ -116,6 +118,7 @@ QgsWFSDataSourceURI::QgsWFSDataSourceURI( const QString &uri )
   }
   else
   {
+    mMediaType = mURI.param( QgsWFSConstants::SETTINGS_MEDIA_TYPE );
     QUrl url( mURI.param( QgsWFSConstants::URI_PARAM_URL ) );
     QUrlQuery query( url );
     bool URLModified = false;

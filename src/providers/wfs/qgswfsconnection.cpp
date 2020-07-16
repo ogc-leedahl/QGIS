@@ -74,6 +74,14 @@ QgsWfsConnection::QgsWfsConnection( const QString &connName )
     }
   }
 
+  if ( settings.contains( key + "/" + QgsWFSConstants::SETTINGS_MEDIA_TYPE ) )
+  {
+    mUri.removeParam( QgsWFSConstants::SETTINGS_MEDIA_TYPE );
+    QString mediaTypeKey = QStringLiteral("%1/%2" ).arg( key ).arg( QgsWFSConstants::SETTINGS_MEDIA_TYPE );
+    QString mediaType = settings.value( mediaTypeKey ).toString();
+    if ( !mediaType.isEmpty() ) mUri.setParam( QgsWFSConstants::SETTINGS_MEDIA_TYPE, mediaType );
+  }
+
   QgsDebugMsgLevel( QStringLiteral( "WFS full uri: '%1'." ).arg( QString( mUri.uri() ) ), 4 );
 }
 
