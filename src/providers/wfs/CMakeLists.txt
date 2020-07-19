@@ -24,6 +24,7 @@ SET(WFS_SRCS
   qgsoapifapirequest.cpp
   qgsoapifcollection.cpp
   qgsoapifitemsrequest.cpp
+  qgsoapifjws.cpp
   qgsoapifprovider.cpp
   qgsoapifutils.cpp
 )

@@ -48,7 +48,6 @@ void QgsBaseNetworkRequest::requestTimedOut( QNetworkReply *reply )
 bool QgsBaseNetworkRequest::sendGET( const QUrl &url, const QString &acceptHeader, bool synchronous, bool forceRefresh, bool cache )
 {
   qDebug() << "QgsBaseNetworkRequest::sendGET url = " << url;
-  qDebug() << "QgsBaseNetworkRequest::sendGET url.url() = " << url.url();
 
   abort(); // cancel previous
   mIsAborted = false;
@@ -161,6 +160,9 @@ bool QgsBaseNetworkRequest::sendGET( const QUrl &url, const QString &acceptHeade
 
     success = true;
     mReply = QgsNetworkAccessManager::instance()->get( request );
+
+    QByteArray contentType("Content-Type");
+    if ( mReply->hasRawHeader( contentType ) ) mResponseMediaType = mReply->rawHeader( contentType );
 
     if ( !mAuth.setAuthorizationReply( mReply ) )
     {

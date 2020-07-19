@@ -37,7 +37,7 @@ class QgsOapifItemsRequest : public QgsBaseNetworkRequest
     void setComputeBbox() { mComputeBbox = true; }
 
     //! Issue the request
-    bool request( bool synchronous, bool forceRefresh, const QString &mediaType );
+    bool request( bool synchronous, bool forceRefresh, const QString &mediaType, const QString &publicKeyUrl );
 
     //! Application level error
     enum class ApplicationLevelError
@@ -80,6 +80,9 @@ class QgsOapifItemsRequest : public QgsBaseNetworkRequest
 
   private:
     QString mUrl;
+
+    QString mPublicKeyUrl;
+    QString mMediaType;
 
     bool mComputeBbox = false;
 

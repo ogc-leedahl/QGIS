@@ -21,6 +21,7 @@ using namespace nlohmann;
 #include "qgsoapifutils.h"
 #include "qgswfsconstants.h"
 #include "qgsproviderregistry.h"
+#include "qgsoapifjws.h"
 
 #include "cpl_vsi.h"
 
@@ -37,8 +38,11 @@ QgsOapifItemsRequest::QgsOapifItemsRequest( const QgsDataSourceUri &baseUri, con
   connect( this, &QgsBaseNetworkRequest::downloadFinished, this, &QgsOapifItemsRequest::processReply, Qt::DirectConnection );
 }
 
-bool QgsOapifItemsRequest::request( bool synchronous, bool forceRefresh, const QString &mediaType )
+bool QgsOapifItemsRequest::request( bool synchronous, bool forceRefresh, const QString &mediaType, const QString &publicKeyUrl )
 {
+  mPublicKeyUrl = publicKeyUrl;
+  mMediaType = mediaType;
+
   if ( !sendGET( QUrl( mUrl ), mediaType, synchronous, forceRefresh ) )
   {
     emit gotResponse();
@@ -74,8 +78,26 @@ void QgsOapifItemsRequest::processReply()
   QTextCodec *codec = QTextCodec::codecForName( "UTF-8" );
   Q_ASSERT( codec );
 
-  const QString utf8Text = codec->toUnicode( buffer.constData(), buffer.size(), &state );
-  qDebug() << utf8Text;
+  QString mediaType = mResponseMediaType.isEmpty() ? mMediaType : mResponseMediaType;
+  QString utf8Text = codec->toUnicode( buffer.constData(), buffer.size(), &state );
+  qDebug() << "QgsOapifItemsRequest::processReply Received:\n" << utf8Text;
+  if( mediaType == "application/stanag+jws") {
+    QgsOapifJws jws( mAuth, mPublicKeyUrl, utf8Text );
+    if ( jws.validSignature() ) {
+      qDebug() << "QgsOapifItemsRequest::processReply - The signature is valid.";
+      qDebug() << "QgsOapifItemsRequest::processReply - The message header is:\n" << jws.header();
+      utf8Text = jws.message();
+      qDebug() << "QgsOapifItemsRequest::processReply - The message body is:\n" << utf8Text;
+
+    } else {
+      mErrorCode = QgsBaseNetworkRequest::ApplicationLevelError;
+      mAppLevelError = ApplicationLevelError::JsonError;
+      mErrorMessage = errorMessageWithReason( tr( "The signature is invalid.  The response may have been tampered with." ) );
+      qDebug() << "QgsOapifItemsRequest::processReply - The signature was invalid and the response may have been tampered with.";
+      emit gotResponse();
+      return;
+    }
+  }
   if ( state.invalidChars != 0 )
   {
     mErrorCode = QgsBaseNetworkRequest::ApplicationLevelError;

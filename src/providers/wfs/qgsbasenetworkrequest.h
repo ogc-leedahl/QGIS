@@ -95,6 +95,9 @@ class QgsBaseNetworkRequest : public QObject
     //! Raw response
     QByteArray mResponse;
 
+    //! Media Type from response
+    QString mResponseMediaType;
+
     //! Whether the request is aborted.
     bool mIsAborted = false;
 

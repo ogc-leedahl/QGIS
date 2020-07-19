@@ -204,20 +204,34 @@
           <widget class="QComboBox" name="cmbMediaType"/>
          </item>
          <item row="3" column="0">
+          <widget class="QLabel" name="lblPublicKeyUrl">
+           <property name="text">
+            <string>Service Public Key URL</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1" colspan="2">
+          <widget class="QLineEdit" name="txtPublicKeyUrl">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enter the URL to the PEM file containing the Public Key of the service.  The public key is used for signature verification on JWS responses.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
           <widget class="QLabel" name="lblMaxNumFeatures">
            <property name="text">
             <string>Max. number of features</string>
            </property>
           </widget>
          </item>
-         <item row="3" column="1" colspan="2">
+         <item row="4" column="1" colspan="2">
           <widget class="QLineEdit" name="txtMaxNumFeatures">
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enter a number to limit the maximum number of features retrieved per feature request. If let to empty, no limit is set.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
           </widget>
          </item>
-         <item row="4" column="0" colspan="3">
+         <item row="5" column="0" colspan="3">
           <widget class="QCheckBox" name="cbxWfsFeaturePaging">
            <property name="text">
             <string>Enable feature paging</string>
@@ -227,28 +241,28 @@
            </property>
           </widget>
          </item>
-         <item row="5" column="0">
+         <item row="6" column="0">
           <widget class="QLabel" name="lblPageSize">
            <property name="text">
             <string>Page size</string>
            </property>
           </widget>
          </item>
-         <item row="5" column="1" colspan="2">
+         <item row="6" column="1" colspan="2">
           <widget class="QLineEdit" name="txtPageSize">
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enter a number to limit the maximum number of features retrieved in a single GetFeature request when paging is enabled. If let to empty, server default will apply.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
           </widget>
          </item>
-         <item row="6" column="0" colspan="3">
+         <item row="7" column="0" colspan="3">
           <widget class="QCheckBox" name="cbxWfsIgnoreAxisOrientation">
            <property name="text">
             <string>Ignore axis orientation (WFS 1.1/WFS 2.0)</string>
            </property>
           </widget>
          </item>
-         <item row="7" column="0" colspan="3">
+         <item row="8" column="0" colspan="3">
           <widget class="QCheckBox" name="cbxWfsInvertAxisOrientation">
            <property name="text">
             <string>Invert axis orientation</string>
@@ -362,6 +376,7 @@
   <tabstop>mWfsVersionDetectButton</tabstop>
   <tabstop>cmbKeyChallengeType</tabstop>
   <tabstop>cmbMediaType</tabstop>
+  <tabstop>txtPublicKeyUrl</tabstop>
   <tabstop>txtMaxNumFeatures</tabstop>
   <tabstop>cbxWfsFeaturePaging</tabstop>
   <tabstop>txtPageSize</tabstop>

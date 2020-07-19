@@ -173,6 +173,12 @@ class GUI_EXPORT QgsNewHttpConnection : public QDialog, private Ui::QgsNewHttpCo
     QComboBox *wfsOapiMediaTypeComboBox() SIP_SKIP;
 
     /**
+     * Returns the Public Key URL Line Edit control.
+     * Proposed new addition to support Data Centric Security Options.
+     */
+    QLineEdit *wfsOapiPublicKeyUrlLineEdit() SIP_SKIP;
+
+    /**
      * Returns the "WFS paging enabled" checkbox
      * \since QGIS 3.2
      */

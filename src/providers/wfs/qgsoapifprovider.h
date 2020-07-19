@@ -143,6 +143,8 @@ class QgsOapifSharedData final: public QObject, public QgsBackgroundCachedShared
 
     const QString mediaType() const { return mMediaType; }
 
+    const QString publicKeyUrl() const { return mPublicKeyUrl; }
+
   signals:
 
     //! Raise error
@@ -175,6 +177,9 @@ class QgsOapifSharedData final: public QObject, public QgsBackgroundCachedShared
 
     //! Media Type
     QString mMediaType;
+
+    //! Public Key URL
+    QString mPublicKeyUrl;
 
     //! Translation state of filter to server-side filter.
     QgsOapifProvider::FilterTranslationState mFilterTranslationState = QgsOapifProvider::FilterTranslationState::FULLY_CLIENT;

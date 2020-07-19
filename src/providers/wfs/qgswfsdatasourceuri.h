@@ -98,6 +98,9 @@ class QgsWFSDataSourceURI
     //! Gets the Media Type
     const QString mediaType() const { return mMediaType; }
 
+    //! Gets the Public Key URL
+    const QString publicKeyUrl() const { return mPublicKeyUrl; }
+
     //! Sets GetFeature output format
     void setOutputFormat( const QString &outputFormat );
 
@@ -148,6 +151,7 @@ class QgsWFSDataSourceURI
   private:
     QgsDataSourceUri mURI;
     QString mMediaType;
+    QString mPublicKeyUrl;
     QgsAuthorizationSettings mAuth;
     QgsStringMap mGetEndpoints;
     QgsStringMap mPostEndpoints;

@@ -96,6 +96,8 @@ QgsNewHttpConnection::QgsNewHttpConnection( QWidget *parent, ConnectionTypes typ
            static_cast<void ( QComboBox::* )( int )>( &QComboBox::currentIndexChanged ),
            this, &QgsNewHttpConnection::wfsOapiMediaTypeCurrentIndexChanged );
 
+  txtPublicKeyUrl->setEnabled( false );
+
   connect( cbxWfsFeaturePaging, &QCheckBox::stateChanged,
            this, &QgsNewHttpConnection::wfsFeaturePagingStateChanged );
 
@@ -195,7 +197,7 @@ void QgsNewHttpConnection::wfsDcsKeyChallengeTypeCurrentIndexChanged(int index)
 
 void QgsNewHttpConnection::wfsOapiMediaTypeCurrentIndexChanged( int index )
 {
-    Q_UNUSED( index )
+  txtPublicKeyUrl->setEnabled( index == 1 );
 }
 
 void QgsNewHttpConnection::wfsFeaturePagingStateChanged( int state )
@@ -291,6 +293,11 @@ QComboBox *QgsNewHttpConnection::wfsOapiMediaTypeComboBox()
   return cmbMediaType;
 }
 
+QLineEdit *QgsNewHttpConnection::wfsOapiPublicKeyUrlLineEdit()
+{
+  return txtPublicKeyUrl;
+}
+
 QCheckBox *QgsNewHttpConnection::wfsPagingEnabledCheckBox()
 {
   return cbxWfsFeaturePaging;
@@ -374,6 +381,8 @@ void QgsNewHttpConnection::updateServiceSpecificSettings()
   if ( mediaType == QLatin1String( "application/geo+json; profile=NATO:4778" ) )
       mediaTypeIdx = 2;
   cmbMediaType->setCurrentIndex( mediaTypeIdx );
+
+  txtPublicKeyUrl->setText( settings.value( wfsKey + "/publicKeyUrl" ).toString() );
 
   // Enable/disable these items per WFS versions
   wfsVersionCurrentIndexChanged( versionIdx );
@@ -611,6 +620,8 @@ void QgsNewHttpConnection::accept()
             break;
     }
     settings.setValue( wfsKey + "/mediaType", mediaType );
+
+    settings.setValue( wfsKey + "/publicKeyUrl", txtPublicKeyUrl->text() );
 
     settings.setValue( wfsKey + "/maxnumfeatures", txtMaxNumFeatures->text() );
 
