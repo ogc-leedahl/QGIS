@@ -125,8 +125,9 @@ class GUI_EXPORT QgsNewHttpConnection : public QDialog, private Ui::QgsNewHttpCo
     enum WfsOapiMediaTypeIndex
     {
         WFS_MEDIA_DEFAULT = 0,
-        WFS_MEDIA_DCS_GEOJSON = 1,
-        WFS_MEDIA_GEOJSON_DCS = 2,
+        WFS_MEDIA_GEOJSON_JWS = 1,
+        WFS_MEDIA_DCS_GEOJSON = 2,
+        WFS_MEDIA_GEOJSON_DCS = 3,
     };
 
     /**

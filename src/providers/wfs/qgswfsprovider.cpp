@@ -33,6 +33,7 @@
 #include "qgswfsdescribefeaturetype.h"
 #include "qgswfstransactionrequest.h"
 #include "qgswfsshareddata.h"
+#include "qgswfsconnection.h"
 #include "qgswfsutils.h"
 #include "qgssettings.h"
 
@@ -1872,4 +1873,9 @@ QgsWfsProviderMetadata::QgsWfsProviderMetadata():
 QGISEXTERN void *multipleProviderMetadataFactory()
 {
   return new std::vector<QgsProviderMetadata *> { new QgsWfsProviderMetadata(), new QgsOapifProviderMetadata() };
+}
+
+QgsAbstractProviderConnection *QgsWfsProviderMetadata::createConnection( const QString &name )
+{
+  return new QgsWfsConnection( name );
 }

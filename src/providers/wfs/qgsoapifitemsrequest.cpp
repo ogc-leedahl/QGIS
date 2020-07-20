@@ -63,7 +63,7 @@ void QgsOapifItemsRequest::processReply()
     emit gotResponse();
     return;
   }
-  const QByteArray &buffer = mResponse;
+  QByteArray &buffer = mResponse;
   if ( buffer.isEmpty() )
   {
     mErrorMessage = tr( "empty response" );
@@ -81,12 +81,13 @@ void QgsOapifItemsRequest::processReply()
   QString mediaType = mResponseMediaType.isEmpty() ? mMediaType : mResponseMediaType;
   QString utf8Text = codec->toUnicode( buffer.constData(), buffer.size(), &state );
   qDebug() << "QgsOapifItemsRequest::processReply Received:\n" << utf8Text;
-  if( mediaType == "application/stanag+jws") {
+  if( ( mediaType == "application/stanag+jws" ) || ( mediaType == "application/geo+jws" ) ) {
     QgsOapifJws jws( mAuth, mPublicKeyUrl, utf8Text );
     if ( jws.validSignature() ) {
       qDebug() << "QgsOapifItemsRequest::processReply - The signature is valid.";
       qDebug() << "QgsOapifItemsRequest::processReply - The message header is:\n" << jws.header();
       utf8Text = jws.message();
+      buffer = utf8Text.toUtf8();
       qDebug() << "QgsOapifItemsRequest::processReply - The message body is:\n" << utf8Text;
 
     } else {

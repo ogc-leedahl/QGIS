@@ -205,6 +205,7 @@ class QgsWfsProviderMetadata final: public QgsProviderMetadata
     QgsWfsProviderMetadata();
     QList<QgsDataItemProvider *> dataItemProviders() const override;
     QgsWFSProvider *createProvider( const QString &uri, const QgsDataProvider::ProviderOptions &options ) override;
+    QgsAbstractProviderConnection *createConnection( const QString &name ) override;
 };
 
 

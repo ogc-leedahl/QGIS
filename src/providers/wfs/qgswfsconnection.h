@@ -17,8 +17,9 @@
 #define QGSWFSCONNECTION_H
 
 #include "qgsowsconnection.h"
+#include "qgsabstractproviderconnection.h"
 
-class QgsWfsConnection : public QgsOwsConnection
+class QgsWfsConnection : public QgsOwsConnection, public QgsAbstractProviderConnection
 {
     Q_OBJECT
 
@@ -36,6 +37,26 @@ class QgsWfsConnection : public QgsOwsConnection
 
     static QString selectedConnection();
     static void setSelectedConnection( const QString &name );
+
+    /**
+     * Stores the provider connection in the settings.
+     * \param name the name under which the connection will be stored
+     */
+    void store( const QString &name ) const override;
+
+    /**
+     * Deletes the provider connection from the settings.
+     */
+    void remove( const QString &name ) const override;
+
+        /**
+     * Returns the connection data source URI string representation
+     */
+
+    using QgsOwsConnection::uri;
+
+private:
+  using QgsOwsConnection::mUri;
 };
 
 #endif

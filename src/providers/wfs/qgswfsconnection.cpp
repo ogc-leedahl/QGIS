@@ -22,7 +22,7 @@
 #include <QCryptographicHash>
 
 QgsWfsConnection::QgsWfsConnection( const QString &connName )
-  : QgsOwsConnection( QStringLiteral( "WFS" ), connName )
+  : QgsOwsConnection( QStringLiteral( "WFS" ), connName ), QgsAbstractProviderConnection( connName )
 {
   const QString &key = QgsWFSConstants::CONNECTIONS_WFS + connectionName();
 
@@ -111,4 +111,21 @@ QString QgsWfsConnection::selectedConnection()
 void QgsWfsConnection::setSelectedConnection( const QString &name )
 {
   QgsOwsConnection::setSelectedConnection( QStringLiteral( "WFS" ), name );
+}
+
+/**
+ * Stores the provider connection in the settings.
+ * \param name the name under which the connection will be stored
+ */
+void QgsWfsConnection::store( const QString &name ) const
+{
+  Q_UNUSED( name );
+}
+
+/**
+ * Deletes the provider connection from the settings.
+ */
+void QgsWfsConnection::remove( const QString &name ) const
+{
+  Q_UNUSED( name );
 }
