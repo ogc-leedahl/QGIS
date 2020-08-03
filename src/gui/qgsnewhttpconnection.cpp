@@ -98,6 +98,7 @@ QgsNewHttpConnection::QgsNewHttpConnection( QWidget *parent, ConnectionTypes typ
            this, &QgsNewHttpConnection::wfsOapiMediaTypeCurrentIndexChanged );
 
   txtPublicKeyUrl->setEnabled( false );
+  txtKmsUrl->setEnabled( false );
 
   connect( cbxWfsFeaturePaging, &QCheckBox::stateChanged,
            this, &QgsNewHttpConnection::wfsFeaturePagingStateChanged );
@@ -198,7 +199,8 @@ void QgsNewHttpConnection::wfsDcsKeyChallengeTypeCurrentIndexChanged(int index)
 
 void QgsNewHttpConnection::wfsOapiMediaTypeCurrentIndexChanged( int index )
 {
-  txtPublicKeyUrl->setEnabled( index == 1 );
+  txtPublicKeyUrl->setEnabled( ( index == 1 ) || ( index == 2 ) );
+  txtKmsUrl->setEnabled( index == 2 );
 }
 
 void QgsNewHttpConnection::wfsFeaturePagingStateChanged( int state )
@@ -299,6 +301,11 @@ QLineEdit *QgsNewHttpConnection::wfsOapiPublicKeyUrlLineEdit()
   return txtPublicKeyUrl;
 }
 
+QLineEdit *QgsNewHttpConnection::wfsOapiKmsUrlLineEdit()
+{
+  return txtKmsUrl;
+}
+
 QCheckBox *QgsNewHttpConnection::wfsPagingEnabledCheckBox()
 {
   return cbxWfsFeaturePaging;
@@ -383,6 +390,8 @@ void QgsNewHttpConnection::updateServiceSpecificSettings()
   cmbMediaType->setCurrentIndex( mediaTypeIdx );
 
   txtPublicKeyUrl->setText( settings.value( wfsKey + "/publicKeyUrl" ).toString() );
+
+  txtKmsUrl->setText( settings.value( wfsKey + "/kmsUrl" ).toString() );
 
   // Enable/disable these items per WFS versions
   wfsVersionCurrentIndexChanged( versionIdx );
@@ -625,6 +634,8 @@ void QgsNewHttpConnection::accept()
     settings.setValue( wfsKey + "/mediaType", mediaType );
 
     settings.setValue( wfsKey + "/publicKeyUrl", txtPublicKeyUrl->text() );
+
+    settings.setValue( wfsKey + "/kmsUrl", txtKmsUrl->text() );
 
     settings.setValue( wfsKey + "/maxnumfeatures", txtMaxNumFeatures->text() );
 

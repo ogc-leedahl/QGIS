@@ -26,10 +26,13 @@
 // TODO: merge with QgsWmsAuthorization?
 struct QgsAuthorizationSettings
 {
-  QgsAuthorizationSettings( const QString &userName = QString(), const QString &password = QString(), const QString &authcfg = QString() )
+  QgsAuthorizationSettings( const QString &userName = QString(), const QString &password = QString(),
+      const QString &authcfg = QString(), const QString &kmsUrl = QString(), const QString &keyChallenge = QString() )
     : mUserName( userName )
     , mPassword( password )
     , mAuthCfg( authcfg )
+    , mKmsUrl( kmsUrl )
+    , mKeyChallenge( keyChallenge )
   {}
 
   //! update authorization for request
@@ -64,6 +67,12 @@ struct QgsAuthorizationSettings
 
   //! Authentication configuration ID
   QString mAuthCfg;
+
+  //! Key Management Server Url
+  QString mKmsUrl;
+
+  //! The key challenge value.
+  QString mKeyChallenge;
 };
 
 #endif // QGSAUTHORIZATIONSETTINGS_H

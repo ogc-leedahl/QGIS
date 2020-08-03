@@ -180,6 +180,12 @@ class GUI_EXPORT QgsNewHttpConnection : public QDialog, private Ui::QgsNewHttpCo
     QLineEdit *wfsOapiPublicKeyUrlLineEdit() SIP_SKIP;
 
     /**
+     * Returns the Key Management Server (KMS) URL Line Edit control.
+     * Proposed new addition to support Data Centric Security Options.
+     */
+    QLineEdit *wfsOapiKmsUrlLineEdit() SIP_SKIP;
+
+    /**
      * Returns the "WFS paging enabled" checkbox
      * \since QGIS 3.2
      */

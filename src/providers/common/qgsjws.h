@@ -1,8 +1,8 @@
 /***************************************************************************
-    oqsopifjws.h
+    oqsjwe.h
     ---------------------
     begin                : July 2020
-    copyright            : (C) 2020 by Michael Leedahl
+    copyright            : (C) 2020 by Maxar Technologies, Inc.
     email                : michael dot leedahl at maxar dot com
 
     Modification History
@@ -18,17 +18,16 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef JWSUTILS_JWS_H
-#define JWSUTILS_JWS_H
+#ifndef QGSJWS_H
+#define QGSJWS_H
 
 #include <QString>
 #include <QObject>
 #include <QNetworkReply>
 #include <QThread>
-#include <QSslKey>
 #include <QtCrypto>
-#include "qgsauthorizationsettings.h"
-#include "qgsbasenetworkrequest.h"
+#include "../wfs/qgsauthorizationsettings.h"
+#include "../wfs/qgsbasenetworkrequest.h"
 
 /**
  * Jws is a utility that implements the JOSE JWS standard for validating and extracting content from Signed JSON
@@ -39,7 +38,7 @@
  * is a UTF-8 string.  The third part is the signature of the associated BASE64URL encoded header and payload separated
  * by a period.
  */
-class QgsOapifJws : public QgsBaseNetworkRequest {
+class QgsJws : public QgsBaseNetworkRequest {
 
   Q_OBJECT
 
@@ -49,7 +48,7 @@ public:
    * @param pemUrl is the URL for the PEM file.
    * @param signedText is the JWS message.
    */
-  explicit QgsOapifJws( const QgsAuthorizationSettings &auth, const QString &pemUrl, const QString &signedText );
+  explicit QgsJws( const QgsAuthorizationSettings &auth, const QString &pemUrl, const QString &signedText );
 
   /**
    * Validates the signature on the message to ensure that the message has not been tampered with in transit.
@@ -93,4 +92,4 @@ private:
   QStringList mParts;     // The list of parts derived from the Signed Text of the JWE.
 };
 
-#endif //JWSUTILS_JWS_H
+#endif //QGSJWS_H

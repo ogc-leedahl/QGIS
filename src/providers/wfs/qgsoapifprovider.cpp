@@ -125,10 +125,7 @@ bool QgsOapifProvider::init()
       mShared->mPageSize = 100; // fallback to arbitrary page size
   }
 
-  bool secured = apiRequest.paths()[ "/collections/" + mShared->mURI.typeName() ];
   mShared->mCollectionUrl = landingPageRequest.collectionsUrl() + QStringLiteral( "/" ) + mShared->mURI.typeName();
-  mShared->mCollectionUrl = addKeyChallenge( secured, mShared->mCollectionUrl );
-
   QgsOapifCollectionRequest collectionRequest( mShared->mURI.uri(), mShared->mCollectionUrl );
   if ( !collectionRequest.request( synchronous, forceRefresh ) )
     return false;
@@ -145,11 +142,11 @@ bool QgsOapifProvider::init()
   mShared->mItemsUrl += QStringLiteral( "?limit=10" );
 
   // Add Key challenge
-  secured = apiRequest.paths()[ "/collections/" + mShared->mURI.typeName() + "/items" ];
+  bool secured = apiRequest.paths()[ "/collections/" + mShared->mURI.typeName() + "/items" ];
   mShared->mItemsUrl = mShared->mCollectionUrl +  QStringLiteral( "/items" );
   mShared->mItemsUrl = addKeyChallenge( secured, mShared->mItemsUrl );
 
-  QgsOapifItemsRequest itemsRequest( mShared->mURI.uri(), mShared->mItemsUrl );
+  QgsOapifItemsRequest itemsRequest( mShared->mURI, mShared->mItemsUrl );
 
   if ( mShared->mCapabilityExtent.isNull() )
   {
@@ -186,9 +183,18 @@ QString QgsOapifProvider::addKeyChallenge( bool secured, const QString &original
 
   if ( secured )
   {
+    int random = rand();
+    mShared->mURI.setKeyChallenge( QString::number( random ) );
+    QString keyChallenge;
+    if ( mShared->mURI.keyChallengeType() == "plain" ) keyChallenge = mShared->mURI.keyChallenge();
+    else {
+      QByteArray randomHash = QCryptographicHash::hash( QByteArray::number( random ), QCryptographicHash::Sha256 );
+      keyChallenge = randomHash.toBase64( QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals );
+    }
+
     QString query = url.contains( "?") ? "&" : "?";
     url += query + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE + "=" + mShared->mURI.keyChallengeType();
-    url += '&' + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE + "=" + mShared->mURI.keyChallenge();
+    url += '&' + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE + "=" + keyChallenge;
   }
 
   return url;
@@ -625,9 +631,24 @@ QString QgsOapifFeatureDownloaderImpl::addKeyChallenge( bool secured, const QStr
 
   if ( secured )
   {
-    QString query = url.contains( "?") ? "&" : "?";
-    url += query + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE + "=" + mShared->mURI.keyChallengeType();
-    url += '&' + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE + "=" + mShared->mURI.keyChallenge();
+    auto tempUrl = QUrl( url );
+    auto query = QUrlQuery( tempUrl );
+    if( !( query.hasQueryItem( "QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE" ) &&
+           query.hasQueryItem( "QgsWFSConstants::URI_PARAM_KEY_CHALLENGE" ) ) )
+    {
+      int random = rand();
+      mShared->mURI.setKeyChallenge( QString::number( random ) );
+      QString keyChallenge;
+      if ( mShared->mURI.keyChallengeType() == "plain" ) keyChallenge = mShared->mURI.keyChallenge();
+      else {
+        QByteArray randomHash = QCryptographicHash::hash( QByteArray::number( random ), QCryptographicHash::Sha256 );
+        keyChallenge = randomHash.toBase64( QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals );
+      }
+
+      QString query = url.contains( "?") ? "&" : "?";
+      url += query + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE + "=" + mShared->mURI.keyChallengeType();
+      url += '&' + QgsWFSConstants::URI_PARAM_KEY_CHALLENGE + "=" + keyChallenge;
+    }
   }
 
   return url;
@@ -717,6 +738,10 @@ void QgsOapifFeatureDownloaderImpl::run( bool serializeFeatures, int maxFeatures
     }
   }
 
+  QUrl tempUrl( "url" );
+  QUrlQuery tempUrlQuery( tempUrl );
+  bool hasF = tempUrlQuery.hasQueryItem( "f" );
+
   while ( !url.isEmpty() )
   {
 
@@ -725,7 +750,7 @@ void QgsOapifFeatureDownloaderImpl::run( bool serializeFeatures, int maxFeatures
       break;
     }
 
-    QgsOapifItemsRequest itemsRequest( mShared->mURI.uri(), url );
+    QgsOapifItemsRequest itemsRequest( mShared->mURI, url );
     connect( &itemsRequest, &QgsOapifItemsRequest::gotResponse, &loop, &QEventLoop::quit );
     itemsRequest.request( false /* synchronous*/, true /* forceRefresh */, mShared->mediaType(), mShared->publicKeyUrl() );
     loop.exec( QEventLoop::ExcludeUserInputEvents );
@@ -746,6 +771,23 @@ void QgsOapifFeatureDownloaderImpl::run( bool serializeFeatures, int maxFeatures
       break;
     }
     url = itemsRequest.nextUrl();
+    qDebug() << "QgsOapifFeatureDownloaderImpl::run - next url: " << url;
+    if( !url.isEmpty() )
+    {
+      if ( url.endsWith( "&" ) ) url = url.left( url.size() - 1 );
+      qDebug() << "QgsOapifFeatureDownloaderImpl::run - next url - &: " << url;
+      url = addKeyChallenge( secured, url );
+      qDebug() << "QgsOapifFeatureDownloaderImpl::run - next url with key challenge: " << url;
+      if ( !hasF )
+      {
+        QUrl temp(url);
+        QUrlQuery tempQuery( temp );
+        tempQuery.removeQueryItem( "f" );
+        temp.setQuery( tempQuery );
+        url = temp.url();
+        qDebug() << "QgsOapifFeatureDownloaderImpl::run - url page 2+: " << url;
+      }
+    }
 
     // Consider if we should display a progress dialog
     // We can only do that if we know how many features will be downloaded

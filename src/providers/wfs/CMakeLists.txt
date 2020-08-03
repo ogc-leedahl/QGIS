@@ -24,7 +24,7 @@ SET(WFS_SRCS
   qgsoapifapirequest.cpp
   qgsoapifcollection.cpp
   qgsoapifitemsrequest.cpp
-  qgsoapifjws.cpp
+  ${CMAKE_SOURCE_DIR}/src/providers/common/qgsjws.cpp
   qgsoapifprovider.cpp
   qgsoapifutils.cpp
 )
@@ -55,6 +55,7 @@ INCLUDE_DIRECTORIES (
   ${CMAKE_SOURCE_DIR}/src/core/metadata
   ${CMAKE_SOURCE_DIR}/src/gui
   ${CMAKE_SOURCE_DIR}/src/gui/auth
+  ${CMAKE_SOURCE_DIR}/src/providers/common
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/nlohmann
 

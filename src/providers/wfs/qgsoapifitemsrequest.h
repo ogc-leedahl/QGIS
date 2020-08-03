@@ -18,7 +18,7 @@
 
 #include <QObject>
 
-#include "qgsdatasourceuri.h"
+#include "qgswfsdatasourceuri.h"
 #include "qgsbasenetworkrequest.h"
 #include "qgsfeature.h"
 #include "qgsbackgroundcachedfeatureiterator.h"
@@ -31,7 +31,7 @@ class QgsOapifItemsRequest : public QgsBaseNetworkRequest
 {
     Q_OBJECT
   public:
-    explicit QgsOapifItemsRequest( const QgsDataSourceUri &uri, const QString &url );
+    explicit QgsOapifItemsRequest( const QgsWFSDataSourceURI &uri, const QString &url );
 
     //! Ask to compute the bbox of the returned items.
     void setComputeBbox() { mComputeBbox = true; }
@@ -82,6 +82,7 @@ class QgsOapifItemsRequest : public QgsBaseNetworkRequest
     QString mUrl;
 
     QString mPublicKeyUrl;
+    QString mKmsUrl;
     QString mMediaType;
 
     bool mComputeBbox = false;
@@ -99,7 +100,6 @@ class QgsOapifItemsRequest : public QgsBaseNetworkRequest
     QString mNextUrl;
 
     ApplicationLevelError mAppLevelError = ApplicationLevelError::NoError;
-
 };
 
 #endif // QGSOAPIFITEMSREQUEST_H

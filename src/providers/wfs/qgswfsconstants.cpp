@@ -53,3 +53,4 @@ const QString QgsWFSConstants::SETTINGS_PAGE_SIZE( QStringLiteral( "pagesize" ) 
 const QString QgsWFSConstants::SETTINGS_KEY_CHALLENGE_TYPE( "keyChallengeType" );
 const QString QgsWFSConstants::SETTINGS_MEDIA_TYPE( "mediaType" );
 const QString QgsWFSConstants::SETTINGS_PUBLIC_KEY_URL( "publicKeyUrl" );
+const QString QgsWFSConstants::SETTINGS_KMS_URL( "kmsUrl" );

@@ -60,18 +60,7 @@ QgsWfsConnection::QgsWfsConnection( const QString &connName )
   {
     mUri.removeParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE );
     QString keyChallengeType = settings.value( key + "/" + QgsWFSConstants::SETTINGS_KEY_CHALLENGE_TYPE ).toString();
-    if( keyChallengeType != "none" )
-    {
-      mUri.setParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE, keyChallengeType );
-      int random = rand();
-      if( keyChallengeType == "plain" ) mUri.setParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE, QString::number( random ) );
-      else
-      {
-        QByteArray randomHash = QCryptographicHash::hash( QByteArray::number( random ), QCryptographicHash::Sha256 );
-        mUri.setParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE,
-            randomHash.toBase64( QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals ) );
-      }
-    }
+    if( keyChallengeType != "none" ) mUri.setParam( QgsWFSConstants::URI_PARAM_KEY_CHALLENGE_TYPE, keyChallengeType );
   }
 
   if ( settings.contains( key + "/" + QgsWFSConstants::SETTINGS_MEDIA_TYPE ) )
@@ -88,6 +77,14 @@ QgsWfsConnection::QgsWfsConnection( const QString &connName )
     QString publicKeyUrlKey = QStringLiteral( "%1/%2" ).arg( key ).arg( QgsWFSConstants::SETTINGS_PUBLIC_KEY_URL );
     QString publicKeyUrl = settings.value( publicKeyUrlKey ).toString();
     if ( !publicKeyUrl.isEmpty() ) mUri.setParam( QgsWFSConstants::SETTINGS_PUBLIC_KEY_URL, publicKeyUrl );
+  }
+
+  if ( settings.contains( key + "/" + QgsWFSConstants::SETTINGS_KMS_URL ) )
+  {
+    mUri.removeParam( QgsWFSConstants::SETTINGS_KMS_URL );
+    QString kmsUrlKey = QStringLiteral( "%1/%2" ).arg( key ).arg( QgsWFSConstants::SETTINGS_KMS_URL );
+    QString kmsUrl = settings.value( kmsUrlKey ).toString();
+    if ( !kmsUrl.isEmpty() ) mUri.setParam( QgsWFSConstants::SETTINGS_KMS_URL, kmsUrl );
   }
 
   QgsDebugMsgLevel( QStringLiteral( "WFS full uri: '%1'." ).arg( QString( mUri.uri() ) ), 4 );

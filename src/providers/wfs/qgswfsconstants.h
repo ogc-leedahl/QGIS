@@ -63,6 +63,7 @@ struct QgsWFSConstants
   static const QString SETTINGS_KEY_CHALLENGE_TYPE;
   static const QString SETTINGS_MEDIA_TYPE;
   static const QString SETTINGS_PUBLIC_KEY_URL;
+  static const QString SETTINGS_KMS_URL;
 };
 
 #endif // QGSWFSCONSTANTS_H

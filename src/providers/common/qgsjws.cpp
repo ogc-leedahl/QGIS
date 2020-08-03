@@ -1,5 +1,5 @@
 /***************************************************************************
-    ogsoapifjws.cpp
+    ogsjws.cpp
     ---------------------
     begin                : July 2020
     copyright            : (C) 2020 by Maxar Technologies, Inc.
@@ -18,7 +18,7 @@
  *                                                                         *
  ***************************************************************************/
 
-#include "qgsoapifjws.h"
+#include "qgsjws.h"
 #include "qgis.h"
 
 #include <QUrl>
@@ -28,7 +28,6 @@
 #include <QEventLoop>
 #include <QWaitCondition>
 #include <QMutex>
-#include <QSslKey>
 
 #include <memory>
 
@@ -37,12 +36,12 @@
  * @param pemUrl is the URL for the PEM file.
  * @param signedText is the JWS message.
  */
-QgsOapifJws::QgsOapifJws(const QgsAuthorizationSettings &auth, const QString &pemUrl, const QString &signedText) :
+QgsJws::QgsJws(const QgsAuthorizationSettings &auth, const QString &pemUrl, const QString &signedText) :
 QgsBaseNetworkRequest( QgsAuthorizationSettings( auth.mUserName, auth.mPassword, auth.mAuthCfg ), tr( "OAPIF" ) ),
 mSignedText(signedText) {
 
   mInit = QCA::Initializer();
-  connect(this, &QgsBaseNetworkRequest::downloadFinished, this, &QgsOapifJws::readPem, Qt::DirectConnection);
+  connect(this, &QgsBaseNetworkRequest::downloadFinished, this, &QgsJws::readPem, Qt::DirectConnection);
   sendGET(QUrl(pemUrl), "text/plain,application/pem-certificate-chain", true, true );
   mParts = mSignedText.split(".");
 }
@@ -51,7 +50,7 @@ mSignedText(signedText) {
  * Validates the signature on the message to ensure that the message has not been tampered with in transit.
  * @return a boolean to signal if the message is valid and unmodified.
  */
-bool QgsOapifJws::validSignature() const {
+bool QgsJws::validSignature() const {
   bool error = mError;
 
   if(!error) {
@@ -77,7 +76,7 @@ bool QgsOapifJws::validSignature() const {
  * Retrieve the header JSON document from the JWS.
  * @return the header JSON document.
  */
-QString QgsOapifJws::header() const {
+QString QgsJws::header() const {
 
   return QByteArray::fromBase64(mParts[0].toUtf8(),
                                 QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
@@ -87,7 +86,7 @@ QString QgsOapifJws::header() const {
  * Retrieve the message JSON document from the JWS.
  * @return the message JSON document.
  */
-QString QgsOapifJws::message() const {
+QString QgsJws::message() const {
 
   return QByteArray::fromBase64(mParts[1].toUtf8(),
                                 QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
@@ -96,17 +95,17 @@ QString QgsOapifJws::message() const {
 /**
  * Format the reason for the error.  Method is a pure virtual method in QgsBaseNetworkRequet.
  */
-QString QgsOapifJws::errorMessageWithReason( const QString &reason )
+QString QgsJws::errorMessageWithReason( const QString &reason )
 {
-  return tr( "Download of items failed: %1" ).arg( reason );
+  return tr( "Download of pem file failed: %1" ).arg( reason );
 }
 
 /**
  * Reads the PEM file from the current network connection.
  */
-void QgsOapifJws::readPem() {
+void QgsJws::readPem() {
 
-  if ( mErrorCode == QNetworkReply::NoError )
+  if ( mErrorCode == QgsBaseNetworkRequest::ErrorCode::NoError )
   {
       mPem = QCA::PublicKey::fromPEM(mResponse);
       mError = false;

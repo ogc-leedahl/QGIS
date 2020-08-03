@@ -21,14 +21,15 @@ using namespace nlohmann;
 #include "qgsoapifutils.h"
 #include "qgswfsconstants.h"
 #include "qgsproviderregistry.h"
-#include "qgsoapifjws.h"
+#include "qgsstanag4778provideroptions.h"
+#include "qgsjws.h"
 
 #include "cpl_vsi.h"
 
 #include <QTextCodec>
 
-QgsOapifItemsRequest::QgsOapifItemsRequest( const QgsDataSourceUri &baseUri, const QString &url ):
-  QgsBaseNetworkRequest( QgsAuthorizationSettings( baseUri.username(), baseUri.password(), baseUri.authConfigId() ), tr( "OAPIF" ) ),
+QgsOapifItemsRequest::QgsOapifItemsRequest( const QgsWFSDataSourceURI &baseUri, const QString &url ):
+  QgsBaseNetworkRequest( baseUri.auth(), tr( "OAPIF" ) ),
   mUrl( url )
 {
   // Using Qt::DirectConnection since the download might be running on a different thread.
@@ -82,13 +83,12 @@ void QgsOapifItemsRequest::processReply()
   QString utf8Text = codec->toUnicode( buffer.constData(), buffer.size(), &state );
   qDebug() << "QgsOapifItemsRequest::processReply Received:\n" << utf8Text;
   if( ( mediaType == "application/stanag+jws" ) || ( mediaType == "application/geo+jws" ) ) {
-    QgsOapifJws jws( mAuth, mPublicKeyUrl, utf8Text );
+    QgsJws jws( mAuth, mPublicKeyUrl, utf8Text );
     if ( jws.validSignature() ) {
       qDebug() << "QgsOapifItemsRequest::processReply - The signature is valid.";
-      qDebug() << "QgsOapifItemsRequest::processReply - The message header is:\n" << jws.header();
       utf8Text = jws.message();
       buffer = utf8Text.toUtf8();
-      qDebug() << "QgsOapifItemsRequest::processReply - The message body is:\n" << utf8Text;
+      //qDebug() << "QgsOapifItemsRequest::processReply - The message body is:\n" << utf8Text;
 
     } else {
       mErrorCode = QgsBaseNetworkRequest::ApplicationLevelError;
@@ -108,18 +108,29 @@ void QgsOapifItemsRequest::processReply()
     return;
   }
 
-  const QString vsimemFilename = QStringLiteral( "/vsimem/oaipf_%1.json" ).arg( reinterpret_cast< quintptr >( &buffer ), QT_POINTER_SIZE * 2, 16, QLatin1Char( '0' ) );
-  VSIFCloseL( VSIFileFromMemBuffer( vsimemFilename.toUtf8().constData(),
-                                    const_cast<GByte *>( reinterpret_cast<const GByte *>( buffer.constData() ) ),
-                                    buffer.size(),
-                                    false ) );
+  std::unique_ptr<QgsVectorDataProvider> vectorProvider;
   QgsProviderRegistry *pReg = QgsProviderRegistry::instance();
-  QgsDataProvider::ProviderOptions providerOptions;
-  auto vectorProvider = std::unique_ptr<QgsVectorDataProvider>(
-                          qobject_cast< QgsVectorDataProvider * >( pReg->createProvider( "ogr", vsimemFilename, providerOptions ) ) );
+  StanagProviderOptions providerOptions;
+  providerOptions.auth = mAuth;
+  const QString vsimemFilename = QStringLiteral( "/vsimem/oaipf_%1.json" ).arg( reinterpret_cast< quintptr >( &buffer ), QT_POINTER_SIZE * 2, 16, QLatin1Char( '0' ) );
+  if ( mMediaType == QStringLiteral( "application/stanag+jws" ) )
+  {
+    vectorProvider = std::unique_ptr<QgsVectorDataProvider>(
+        qobject_cast< QgsVectorDataProvider * >( pReg->createProvider( "s4778j", utf8Text, providerOptions ) ) );
+  }
+  else
+  {
+    VSIFCloseL( VSIFileFromMemBuffer( vsimemFilename.toUtf8().constData(),
+                                      const_cast<GByte *>( reinterpret_cast<const GByte *>( buffer.constData() ) ),
+                                      buffer.size(),
+                                      false ) );
+    vectorProvider = std::unique_ptr<QgsVectorDataProvider>(
+        qobject_cast< QgsVectorDataProvider * >( pReg->createProvider( "ogr", vsimemFilename, providerOptions ) ) );
+  }
+
   if ( !vectorProvider || !vectorProvider->isValid() )
   {
-    VSIUnlink( vsimemFilename.toUtf8().constData() );
+    if ( mMediaType != QStringLiteral( "application/stanag+jws" ) ) VSIUnlink( vsimemFilename.toUtf8().constData() );
     mErrorCode = QgsBaseNetworkRequest::ApplicationLevelError;
     mAppLevelError = ApplicationLevelError::JsonError;
     mErrorMessage = errorMessageWithReason( tr( "Loading of items failed" ) );
@@ -142,7 +153,7 @@ void QgsOapifItemsRequest::processReply()
     mFeatures.push_back( QgsFeatureUniqueIdPair( f, QString() ) );
   }
   vectorProvider.reset();
-  VSIUnlink( vsimemFilename.toUtf8().constData() );
+  if ( mMediaType != QStringLiteral( "application/stanag+jws" ) ) VSIUnlink( vsimemFilename.toUtf8().constData() );
 
   try
   {
@@ -172,9 +183,7 @@ void QgsOapifItemsRequest::processReply()
     }
 
     const auto links = QgsOAPIFJson::parseLinks( j );
-    mNextUrl = QgsOAPIFJson::findLink( links,
-                                       QStringLiteral( "next" ),
-    {  QStringLiteral( "application/geo+json" ) } );
+    mNextUrl = QgsOAPIFJson::findLink( links, QStringLiteral( "next" ), { mMediaType } );
 
     if ( j.is_object() && j.contains( "numberMatched" ) )
     {
