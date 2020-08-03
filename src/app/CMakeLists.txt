@@ -261,6 +261,8 @@ IF (WITH_3D)
     ${QGIS_APP_SRCS}
     3d/qgs3danimationwidget.cpp
     3d/qgs3danimationexportdialog.cpp
+    3d/qgs3dapputils.cpp
+    3d/qgs3dicongenerator.cpp
     3d/qgs3dmapcanvas.cpp
     3d/qgs3dmapcanvasdockwidget.cpp
     3d/qgs3dmapconfigwidget.cpp
@@ -272,6 +274,7 @@ IF (WITH_3D)
     3d/qgs3dnavigationwidget.cpp
     3d/qgslightswidget.cpp
     3d/qgsline3dsymbolwidget.cpp
+    3d/qgsmaterialwidget.cpp
     3d/qgsmesh3dsymbolwidget.cpp
     3d/qgspoint3dsymbolwidget.cpp
     3d/qgspolygon3dsymbolwidget.cpp
@@ -281,6 +284,7 @@ IF (WITH_3D)
     3d/qgsvectorlayer3dpropertieswidget.cpp
     3d/qgsvectorlayer3drendererwidget.cpp
     3d/qgsmeshlayer3drendererwidget.cpp
+    3d/qgsmap3dexportwidget.cpp
     layout/qgslayout3dmapwidget.cpp
   )
 ENDIF (WITH_3D)

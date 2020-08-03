@@ -14,6 +14,7 @@ SET(QGIS_3D_SRCS
   qgscamerapose.cpp
   qgsfeature3dhandler_p.cpp
   qgslayoutitem3dmap.cpp
+  qgsmaterialregistry.cpp
   qgsoffscreen3dengine.cpp
   qgsphongmaterialsettings.cpp
   qgspointlightsettings.cpp
@@ -37,7 +38,6 @@ SET(QGIS_3D_SRCS
   processing/qgs3dalgorithms.cpp
   processing/qgsalgorithmtessellate.cpp
 
-  symbols/qgsabstract3dsymbol.cpp
   symbols/qgsbillboardgeometry.cpp
   symbols/qgsline3dsymbol.cpp
   symbols/qgsline3dsymbol_p.cpp
@@ -69,7 +69,10 @@ SET(QGIS_3D_SRCS
   mesh/qgsmesh3dentity_p.cpp
   mesh/qgsmesh3dmaterial_p.cpp
   mesh/qgsmeshterraingenerator.cpp
-
+  qgs3dsceneexporter.cpp
+  qgs3dexportobject.cpp
+  qgs3dmapexportsettings.cpp
+  qgsimagetexture.cpp
 )
 
 SET(QGIS_3D_HDRS
@@ -82,10 +85,12 @@ SET(QGIS_3D_HDRS
   qgs3dutils.h
   qgsaabb.h
   qgsabstract3dengine.h
+  qgsabstractmaterialsettings.h
   qgsabstractvectorlayer3drenderer.h
   qgscameracontroller.h
   qgscamerapose.h
   qgslayoutitem3dmap.h
+  qgsmaterialregistry.h
   qgsmeshlayer3drenderer.h
   qgsoffscreen3dengine.h
   qgsphongmaterialsettings.h
@@ -96,7 +101,6 @@ SET(QGIS_3D_HDRS
   qgstilingscheme.h
   qgsvectorlayer3drenderer.h
   qgswindow3dengine.h
-  symbols/qgsabstract3dsymbol.h
   symbols/qgsbillboardgeometry.h
   symbols/qgsline3dsymbol.h
   symbols/qgsmesh3dsymbol.h
@@ -112,6 +116,7 @@ SET(QGIS_3D_HDRS
   chunks/qgschunkloader_p.h
   chunks/qgschunkqueuejob_p.h
   mesh/qgsmeshterraingenerator.h
+  qgs3dsceneexporter.h
 )
 
 SET(QGIS_3D_PRIVATE_HDRS
@@ -159,6 +164,7 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_SOURCE_DIR}/src/core/expression
   ${CMAKE_SOURCE_DIR}/src/core/layout
   ${CMAKE_SOURCE_DIR}/src/core/3d
+  ${CMAKE_SOURCE_DIR}/src/core/textrenderer
   ${CMAKE_SOURCE_DIR}/external
   ${CMAKE_SOURCE_DIR}/external/nlohmann
 
