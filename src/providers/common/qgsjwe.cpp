@@ -22,14 +22,11 @@
 #include "qgis.h"
 
 #include <QUrl>
-#include <QNetworkRequest>
-#include <QNetworkAccessManager>
-#include <QEventLoop>
 #include <QWaitCondition>
-#include <QMutex>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QDataStream>
 
 #include <memory>
 
@@ -93,11 +90,17 @@ QString QgsJwe::header() const {
 QString QgsJwe::message() {
 
   QString plainText;
-  QCA::SymmetricKey key(mKeyMap.value(mCurrentKeyId));
-  QCA::InitializationVector iv(QByteArray::fromBase64(mParts[2].toUtf8(), QByteArray::Base64UrlEncoding | QByteArray::Base64UrlEncoding));
-  auto payload = QByteArray::fromBase64(mParts[3].toUtf8(), QByteArray::Base64UrlEncoding | QByteArray::Base64UrlEncoding);
+  QCA::SymmetricKey key(mKeyMap[mCurrentKeyId].right(mKeyMap[mCurrentKeyId].size()/2));
+  QCA::InitializationVector iv(QByteArray::fromBase64(mParts[2].toUtf8(), QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
+  auto payload = QByteArray::fromBase64(mParts[3].toUtf8(), QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
 
   if(mAlgorithm == "A192CBC-HS384") {
+    if(!verifyHMAC(QLatin1Literal("hmac(sha384)"))) {
+      mErrorCode = ErrorCode::ApplicationLevelError;
+      mErrorMessage = "Application Error (Decryption HMAC 384).";
+      return QString();
+    }
+
     QCA::Cipher cipher("aes192",  QCA::Cipher::CBC, QCA::Cipher::Padding::PKCS7, QCA::Direction::Decode, key, iv);
     auto plain = cipher.process(payload);
     if(!cipher.ok()) {
@@ -108,6 +111,12 @@ QString QgsJwe::message() {
     plainText = plain.toByteArray();
 
   } else if(mAlgorithm == "A256CBC-HS512") {
+    if(!verifyHMAC(QLatin1Literal("hmac(sha512)"))) {
+      mErrorCode = ErrorCode::ApplicationLevelError;
+      mErrorMessage = "Application Error (Decryption HMAC 512).";
+      return QString();
+    }
+
     QCA::Cipher cipher("aes256",  QCA::Cipher::CBC, QCA::Cipher::Padding::PKCS7, QCA::Direction::Decode, key, iv);
     auto plain = cipher.process(payload);
     if(!cipher.ok()) {
@@ -118,6 +127,12 @@ QString QgsJwe::message() {
     plainText = plain.toByteArray();
 
   } else if(mAlgorithm == "A128CBC-HS256") {
+    if(!verifyHMAC(QLatin1Literal("hmac(sha256)"))) {
+      mErrorCode = ErrorCode::ApplicationLevelError;
+      mErrorMessage = "Application Error (Decryption HMAC 256).";
+      return QString();
+    }
+
     QCA::Cipher cipher(QStringLiteral("aes128"),  QCA::Cipher::CBC, QCA::Cipher::Padding::PKCS7, QCA::Direction::Decode, key, iv);
     auto plain = cipher.process(payload);
     if(!cipher.ok()) {
@@ -129,6 +144,43 @@ QString QgsJwe::message() {
   }
 
   return plainText;
+}
+
+/**
+ * Verifies the HMAC value.
+ * return: true if the HMAC is valid.
+ */
+bool QgsJwe::verifyHMAC(const QString &algorithm) {
+
+    auto hmacKey = QCA::SymmetricKey(mKeyMap[mCurrentKeyId].left(mKeyMap[mCurrentKeyId].size()/2));
+
+    auto aad = mParts[0].toUtf8();
+    auto iv = QByteArray::fromBase64(mParts[2].toUtf8(), QByteArray::Base64UrlEncoding);
+    auto cipherText = QByteArray::fromBase64(mParts[3].toUtf8(), QByteArray::Base64UrlEncoding);
+    auto authTag = QByteArray::fromBase64(mParts[4].toUtf8(), QByteArray::Base64UrlEncoding);
+
+    QByteArray al;
+    al.reserve(8);
+    QDataStream stream(&al, QIODevice::WriteOnly);
+    quint64 aadSize = aad.size() * 8;
+    stream << aadSize;
+
+    QByteArray message;
+    message.reserve(aad.size() + iv.size() + cipherText.size() + al.size());
+    message.append(aad).append(iv).append(cipherText).append(al);
+
+    auto hmacAlgorithm = QCA::MessageAuthenticationCode(algorithm, hmacKey, QString());
+    auto hmac = hmacAlgorithm.process(message).toByteArray();
+
+    if(hmac.left(hmac.size()/2) != authTag) {
+      mErrorCode = ErrorCode::ApplicationLevelError;
+      mErrorMessage = "Application Error (HMAC).";
+      return false;
+    }
+
+    qDebug() << "QgsJwe::verifyHMAC: HMAC on key (" + mCurrentKeyId + ") is valid.";
+
+    return true;
 }
 
 /**
@@ -146,8 +198,6 @@ void QgsJwe::readKey() {
 
   if ( mErrorCode == ErrorCode::NoError )
   {
-    //qDebug() << "QgsJwe::readKey() - Response\n" << mResponse;
-
     auto document = QJsonDocument::fromJson(mResponse);
     if(document.isNull() || !document.isObject()) {
       mErrorCode = ErrorCode::ApplicationLevelError;
@@ -170,8 +220,7 @@ void QgsJwe::readKey() {
       mErrorMessage = "Application Error (Key).";
       return;
     }
-    auto key = QByteArray::fromBase64(keyValue.toString().toUtf8(), QByteArray::Base64UrlEncoding | QByteArray::Base64UrlEncoding);
-    key = key.right(key.size()/2);
+    auto key = QByteArray::fromBase64(keyValue.toString().toUtf8(), QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
     mKeyMap.insert(mCurrentKeyId, key);
   }
 

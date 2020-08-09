@@ -84,6 +84,11 @@ void QgsStanag4778JsonProvider::parseFeatures(const QString &message, const QgsA
       if(pJwe == nullptr) pJwe = new QgsJwe(auth, data);
       else pJwe->setEncryptedText(data);
 
+      if(pJwe->errorCode() != QgsJwe::ErrorCode::NoError) {
+        pushError(pJwe->errorMessage());
+        continue;
+      }
+
       QString decrypted = pJwe->message();
       if(pJwe->errorCode() != QgsJwe::ErrorCode::NoError) {
         pushError(pJwe->errorMessage());

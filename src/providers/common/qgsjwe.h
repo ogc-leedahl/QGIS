@@ -93,6 +93,11 @@ private:
   QNetworkReply *mReply;  // The reply from the network request.
   QCA::Initializer mInit; // The initializer for the Cryptographic libraries.
   QStringList mParts;     // The list of parts derived from the encrypted text in the JWE.
+
+  /**
+   * Verifies the HMAC on the key.
+   */
+  bool verifyHMAC(const QString &algorithm);
 };
 
 #endif //QGSJWE_H
