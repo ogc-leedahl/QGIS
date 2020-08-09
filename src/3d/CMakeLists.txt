@@ -7,16 +7,18 @@ SET(QGIS_3D_SRCS
   qgsabstract3dengine.cpp
   qgsabstractvectorlayer3drenderer.cpp
   qgs3danimationsettings.cpp
+  qgs3dexportobject.cpp
+  qgs3dmapexportsettings.cpp
   qgs3dmapscene.cpp
   qgs3dmapsettings.cpp
+  qgs3dsceneexporter.cpp
   qgs3dutils.cpp
   qgscameracontroller.cpp
   qgscamerapose.cpp
   qgsfeature3dhandler_p.cpp
+  qgsimagetexture.cpp
   qgslayoutitem3dmap.cpp
-  qgsmaterialregistry.cpp
   qgsoffscreen3dengine.cpp
-  qgsphongmaterialsettings.cpp
   qgspointlightsettings.cpp
   qgsdirectionallightsettings.cpp
   qgsraycastingutils_p.cpp
@@ -28,12 +30,20 @@ SET(QGIS_3D_SRCS
   qgsvectorlayerchunkloader_p.cpp
   qgsmeshlayer3drenderer.cpp
   qgswindow3dengine.cpp
+  qgsskyboxentity.cpp
+  qgsskyboxsettings.cpp
 
   chunks/qgschunkboundsentity_p.cpp
   chunks/qgschunkedentity_p.cpp
   chunks/qgschunklist_p.cpp
   chunks/qgschunknode_p.cpp
   chunks/qgschunkqueuejob_p.cpp
+
+  materials/qgsgoochmaterialsettings.cpp
+  materials/qgsmaterialregistry.cpp
+  materials/qgsphongmaterialsettings.cpp
+  materials/qgsphongtexturedmaterialsettings.cpp
+  materials/qgssimplelinematerialsettings.cpp
 
   processing/qgs3dalgorithms.cpp
   processing/qgsalgorithmtessellate.cpp
@@ -69,10 +79,6 @@ SET(QGIS_3D_SRCS
   mesh/qgsmesh3dentity_p.cpp
   mesh/qgsmesh3dmaterial_p.cpp
   mesh/qgsmeshterraingenerator.cpp
-  qgs3dsceneexporter.cpp
-  qgs3dexportobject.cpp
-  qgs3dmapexportsettings.cpp
-  qgsimagetexture.cpp
 )
 
 SET(QGIS_3D_HDRS
@@ -81,19 +87,17 @@ SET(QGIS_3D_HDRS
   qgs3danimationsettings.h
   qgs3dmapscene.h
   qgs3dmapsettings.h
+  qgs3dsceneexporter.h
   qgs3dtypes.h
   qgs3dutils.h
   qgsaabb.h
   qgsabstract3dengine.h
-  qgsabstractmaterialsettings.h
   qgsabstractvectorlayer3drenderer.h
   qgscameracontroller.h
   qgscamerapose.h
   qgslayoutitem3dmap.h
-  qgsmaterialregistry.h
   qgsmeshlayer3drenderer.h
   qgsoffscreen3dengine.h
-  qgsphongmaterialsettings.h
   qgspointlightsettings.h
   qgsdirectionallightsettings.h
   qgsrulebased3drenderer.h
@@ -101,22 +105,34 @@ SET(QGIS_3D_HDRS
   qgstilingscheme.h
   qgsvectorlayer3drenderer.h
   qgswindow3dengine.h
+  qgsskyboxentity.h
+  qgsskyboxsettings.h
+
+  materials/qgsabstractmaterialsettings.h
+  materials/qgsgoochmaterialsettings.h
+  materials/qgsmaterialregistry.h
+  materials/qgsphongmaterialsettings.h
+  materials/qgsphongtexturedmaterialsettings.h
+  materials/qgssimplelinematerialsettings.h
+
   symbols/qgsbillboardgeometry.h
   symbols/qgsline3dsymbol.h
   symbols/qgsmesh3dsymbol.h
   symbols/qgspoint3dbillboardmaterial.h
   symbols/qgspoint3dsymbol.h
   symbols/qgspolygon3dsymbol.h
+
   terrain/qgsdemterraingenerator.h
   terrain/qgsflatterraingenerator.h
   terrain/qgsonlineterraingenerator.h
   terrain/qgsterraindownloader.h
   terrain/qgsterraingenerator.h
   terrain/qgsterraintileloader_p.h
+
   chunks/qgschunkloader_p.h
   chunks/qgschunkqueuejob_p.h
+
   mesh/qgsmeshterraingenerator.h
-  qgs3dsceneexporter.h
 )
 
 SET(QGIS_3D_PRIVATE_HDRS
@@ -150,6 +166,7 @@ SET (QGIS_3D_RCCS  shaders.qrc  ../../resources/3d/textures/textures.qrc)
 INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/chunks
+  ${CMAKE_CURRENT_SOURCE_DIR}/materials
   ${CMAKE_CURRENT_SOURCE_DIR}/mesh
   ${CMAKE_CURRENT_SOURCE_DIR}/symbols
   ${CMAKE_CURRENT_SOURCE_DIR}/terrain

@@ -53,13 +53,12 @@ Qgs3DMapSettings::Qgs3DMapSettings( const Qgs3DMapSettings &other )
   , mDirectionalLights( other.mDirectionalLights )
   , mFieldOfView( other.mFieldOfView )
   , mLayers( other.mLayers )
+  , mTerrainLayers( other.mTerrainLayers )
   , mRenderers() // initialized in body
-  , mSkyboxEnabled( other.mSkyboxEnabled )
-  , mSkyboxFileBase( other.mSkyboxFileBase )
-  , mSkyboxFileExtension( other.mSkyboxFileExtension )
   , mTransformContext( other.mTransformContext )
   , mPathResolver( other.mPathResolver )
   , mMapThemes( other.mMapThemes )
+  , mSkyboxSettings()
 {
   Q_FOREACH ( QgsAbstract3DRenderer *renderer, other.mRenderers )
   {
@@ -153,6 +152,23 @@ void Qgs3DMapSettings::readXml( const QDomElement &elem, const QgsReadWriteConte
   }
   mLayers = mapLayers;  // needs to resolve refs afterwards
 
+  QDomElement elemTerrainLayers = elemTerrain.firstChildElement( QStringLiteral( "terrainLayers" ) );
+  if ( elemTerrainLayers.isNull() )
+  {
+    mTerrainLayers = mLayers;
+  }
+  else
+  {
+    QDomElement elemTerrainMapLayer = elemTerrainLayers.firstChildElement( QStringLiteral( "layer" ) );
+    QList<QgsMapLayerRef> terrainMapLayers;
+    while ( !elemTerrainMapLayer.isNull() )
+    {
+      terrainMapLayers << QgsMapLayerRef( elemTerrainMapLayer.attribute( QStringLiteral( "id" ) ) );
+      elemTerrainMapLayer = elemTerrainMapLayer.nextSiblingElement( QStringLiteral( "layer" ) );
+    }
+    mTerrainLayers = mapLayers;  // needs to resolve refs afterwards
+  }
+
   QDomElement elemTerrainGenerator = elemTerrain.firstChildElement( QStringLiteral( "generator" ) );
   QString terrainGenType = elemTerrainGenerator.attribute( QStringLiteral( "type" ) );
   if ( terrainGenType == QLatin1String( "dem" ) )
@@ -208,9 +224,8 @@ void Qgs3DMapSettings::readXml( const QDomElement &elem, const QgsReadWriteConte
   }
 
   QDomElement elemSkybox = elem.firstChildElement( QStringLiteral( "skybox" ) );
-  mSkyboxEnabled = elemSkybox.attribute( QStringLiteral( "enabled" ), QStringLiteral( "0" ) ).toInt();
-  mSkyboxFileBase = elemSkybox.attribute( QStringLiteral( "file-base" ) );
-  mSkyboxFileExtension = elemSkybox.attribute( QStringLiteral( "file-ext" ) );
+  mSkyboxSettings.readXml( elemSkybox, context );
+
 
   QDomElement elemDebug = elem.firstChildElement( QStringLiteral( "debug" ) );
   mShowTerrainBoundingBoxes = elemDebug.attribute( QStringLiteral( "bounding-boxes" ), QStringLiteral( "0" ) ).toInt();
@@ -283,6 +298,16 @@ QDomElement Qgs3DMapSettings::writeXml( QDomDocument &doc, const QgsReadWriteCon
     elemMapLayers.appendChild( elemMapLayer );
   }
   elemTerrain.appendChild( elemMapLayers );
+
+  QDomElement elemTerrainMapLayers = doc.createElement( QStringLiteral( "terrainLayers" ) );
+  Q_FOREACH ( const QgsMapLayerRef &layerRef, mTerrainLayers )
+  {
+    QDomElement elemMapLayer = doc.createElement( QStringLiteral( "layer" ) );
+    elemMapLayer.setAttribute( QStringLiteral( "id" ), layerRef.layerId );
+    elemTerrainMapLayers.appendChild( elemMapLayer );
+  }
+  elemTerrain.appendChild( elemTerrainMapLayers );
+
   QDomElement elemTerrainGenerator = doc.createElement( QStringLiteral( "generator" ) );
   elemTerrainGenerator.setAttribute( QStringLiteral( "type" ), QgsTerrainGenerator::typeToString( mTerrainGenerator->type() ) );
   mTerrainGenerator->writeXml( elemTerrainGenerator );
@@ -300,10 +325,7 @@ QDomElement Qgs3DMapSettings::writeXml( QDomDocument &doc, const QgsReadWriteCon
   elem.appendChild( elemRenderers );
 
   QDomElement elemSkybox = doc.createElement( QStringLiteral( "skybox" ) );
-  elemSkybox.setAttribute( QStringLiteral( "enabled" ), mSkyboxEnabled ? 1 : 0 );
-  // TODO: use context for relative paths, maybe explicitly list all files(?)
-  elemSkybox.setAttribute( QStringLiteral( "file-base" ), mSkyboxFileBase );
-  elemSkybox.setAttribute( QStringLiteral( "file-ext" ), mSkyboxFileExtension );
+  mSkyboxSettings.writeXml( elemSkybox, context );
   elem.appendChild( elemSkybox );
 
   QDomElement elemDebug = doc.createElement( QStringLiteral( "debug" ) );
@@ -325,6 +347,11 @@ void Qgs3DMapSettings::resolveReferences( const QgsProject &project )
   for ( int i = 0; i < mLayers.count(); ++i )
   {
     QgsMapLayerRef &layerRef = mLayers[i];
+    layerRef.setLayer( project.mapLayer( layerRef.layerId ) );
+  }
+  for ( int i = 0; i < mTerrainLayers.count(); ++i )
+  {
+    QgsMapLayerRef &layerRef = mTerrainLayers[i];
     layerRef.setLayer( project.mapLayer( layerRef.layerId ) );
   }
 
@@ -425,6 +452,34 @@ QList<QgsMapLayer *> Qgs3DMapSettings::layers() const
   QList<QgsMapLayer *> lst;
   lst.reserve( mLayers.count() );
   Q_FOREACH ( const QgsMapLayerRef &layerRef, mLayers )
+  {
+    if ( layerRef.layer )
+      lst.append( layerRef.layer );
+  }
+  return lst;
+}
+
+void Qgs3DMapSettings::setTerrainLayers( const QList<QgsMapLayer *> &layers )
+{
+  QList<QgsMapLayerRef> lst;
+  lst.reserve( layers.count() );
+  Q_FOREACH ( QgsMapLayer *layer, layers )
+  {
+    lst.append( layer );
+  }
+
+  if ( mTerrainLayers == lst )
+    return;
+
+  mTerrainLayers = lst;
+  emit terrainLayersChanged();
+}
+
+QList<QgsMapLayer *> Qgs3DMapSettings::terrainLayers() const
+{
+  QList<QgsMapLayer *> lst;
+  lst.reserve( mTerrainLayers.count() );
+  Q_FOREACH ( const QgsMapLayerRef &layerRef, mTerrainLayers )
   {
     if ( layerRef.layer )
       lst.append( layerRef.layer );
@@ -588,9 +643,8 @@ void Qgs3DMapSettings::setFieldOfView( const float fieldOfView )
   emit fieldOfViewChanged();
 }
 
-void Qgs3DMapSettings::setSkybox( bool enabled, const QString &fileBase, const QString &fileExtension )
+void Qgs3DMapSettings::setSkyboxSettings( const QgsSkyboxSettings &skyboxSettings )
 {
-  mSkyboxEnabled = enabled;
-  mSkyboxFileBase = fileBase;
-  mSkyboxFileExtension = fileExtension;
+  mSkyboxSettings = skyboxSettings;
+  emit skyboxSettingsChanged();
 }

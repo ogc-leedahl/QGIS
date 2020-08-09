@@ -53,6 +53,7 @@
 #include "qgsstyle.h"
 #include "qgsbookmarkmanager.h"
 #include "qgsexpressioncontextutils.h"
+#include "qgsrenderchecker.h"
 
 class TestQgsProcessingAlgs: public QObject
 {
@@ -104,6 +105,8 @@ class TestQgsProcessingAlgs: public QObject
     void cellStatistics();
     void rasterFrequencyByComparisonOperator_data();
     void rasterFrequencyByComparisonOperator();
+    void rasterLocalPosition_data();
+    void rasterLocalPosition();
     void roundRasterValues_data();
     void roundRasterValues();
 
@@ -139,8 +142,11 @@ class TestQgsProcessingAlgs: public QObject
     void setProjectVariable();
     void exportLayoutPdf();
     void exportLayoutPng();
+    void exportAtlasLayoutPng();
 
   private:
+
+    bool imageCheck( const QString &testName, const QString &renderedImage );
 
     QString mPointLayerPath;
     QgsVectorLayer *mPointsLayer = nullptr;
@@ -2516,6 +2522,148 @@ void TestQgsProcessingAlgs::rasterFrequencyByComparisonOperator()
   }
 }
 
+
+void TestQgsProcessingAlgs::rasterLocalPosition_data()
+{
+  QTest::addColumn<QString>( "algName" );
+  QTest::addColumn<QStringList>( "inputRasters" );
+  QTest::addColumn<QString>( "referenceRaster" );
+  QTest::addColumn<bool>( "ignoreNoData" );
+  QTest::addColumn<QString>( "expectedRaster" );
+
+  QTest::newRow( "testcase_1" )
+      << QStringLiteral( "native:lowestpositioninrasterstack" )
+      << QStringList( {"/raster/statisticsRas1_float64.asc", "/raster/statisticsRas2_float64.asc", "/raster/statisticsRas3_float64.asc"} )
+      << QStringLiteral( "/raster/statisticsRas1_float64.asc" )
+      << false
+      << QStringLiteral( "/expected_lowestPosition/expectedLowestPositionTest1.tif" );
+
+  QTest::newRow( "testcase_2" )
+      << QStringLiteral( "native:lowestpositioninrasterstack" )
+      << QStringList( {"/raster/statisticsRas1_float64.asc", "/raster/statisticsRas2_float64.asc", "/raster/statisticsRas3_float64.asc"} )
+      << QStringLiteral( "/raster/statisticsRas1_float64.asc" )
+      << true
+      << QStringLiteral( "/expected_lowestPosition/expectedLowestPositionTest2.tif" );
+
+  QTest::newRow( "testcase_3" )
+      << QStringLiteral( "native:lowestpositioninrasterstack" )
+      << QStringList( {"/raster/statisticsRas2_float64.asc", "/raster/statisticsRas1_float64.asc", "/raster/statisticsRas3_float64.asc"} )
+      << QStringLiteral( "/raster/statisticsRas1_float64.asc" )
+      << false
+      << QStringLiteral( "/expected_lowestPosition/expectedLowestPositionTest3.tif" );
+
+  QTest::newRow( "testcase_4" )
+      << QStringLiteral( "native:highestpositioninrasterstack" )
+      << QStringList( {"/raster/statisticsRas1_float64.asc", "/raster/statisticsRas2_float64.asc", "/raster/statisticsRas3_float64.asc"} )
+      << QStringLiteral( "/raster/statisticsRas1_float64.asc" )
+      << false
+      << QStringLiteral( "/expected_highestPosition/expectedHighestPositionTest1.tif" );
+
+  QTest::newRow( "testcase_5" )
+      << QStringLiteral( "native:highestpositioninrasterstack" )
+      << QStringList( {"/raster/statisticsRas1_float64.asc", "/raster/statisticsRas2_float64.asc", "/raster/statisticsRas3_float64.asc"} )
+      << QStringLiteral( "/raster/statisticsRas1_float64.asc" )
+      << true
+      << QStringLiteral( "/expected_highestPosition/expectedHighestPositionTest2.tif" );
+
+  QTest::newRow( "testcase_6" )
+      << QStringLiteral( "native:highestpositioninrasterstack" )
+      << QStringList( {"/raster/statisticsRas2_float64.asc", "/raster/statisticsRas1_float64.asc", "/raster/statisticsRas3_float64.asc"} )
+      << QStringLiteral( "/raster/statisticsRas1_float64.asc" )
+      << false
+      << QStringLiteral( "/expected_highestPosition/expectedHighestPositionTest3.tif" );
+}
+
+void TestQgsProcessingAlgs::rasterLocalPosition()
+{
+  QFETCH( QString, algName );
+  QFETCH( QStringList, inputRasters );
+  QFETCH( QString, referenceRaster );
+  QFETCH( bool, ignoreNoData );
+  QFETCH( QString, expectedRaster );
+
+  //prepare input params
+  QgsProject p;
+  std::unique_ptr< QgsProcessingAlgorithm > alg( QgsApplication::processingRegistry()->createAlgorithmById( algName ) );
+
+  QString myDataPath( TEST_DATA_DIR ); //defined in CmakeLists.txt
+
+  QStringList inputDatasetPaths;
+
+  for ( const auto &raster : inputRasters )
+  {
+    inputDatasetPaths << myDataPath + raster;
+  }
+
+  std::unique_ptr<QgsRasterLayer> inputRasterLayer1 = qgis::make_unique< QgsRasterLayer >( myDataPath + inputRasters[0], "inputDataset", "gdal" );
+
+  //set project crs and ellipsoid from input layer
+  p.setCrs( inputRasterLayer1->crs(), true );
+
+  //set project after layer has been added so that transform context/ellipsoid from crs is also set
+  std::unique_ptr< QgsProcessingContext > context = qgis::make_unique< QgsProcessingContext >();
+  context->setProject( &p );
+
+  QVariantMap parameters;
+
+  parameters.insert( QStringLiteral( "INPUT_RASTERS" ), inputDatasetPaths );
+  parameters.insert( QStringLiteral( "REFERENCE_LAYER" ), myDataPath + referenceRaster );
+  parameters.insert( QStringLiteral( "IGNORE_NODATA" ), ignoreNoData );
+  parameters.insert( QStringLiteral( "OUTPUT" ), QgsProcessing::TEMPORARY_OUTPUT );
+
+  //prepare expectedRaster
+  std::unique_ptr<QgsRasterLayer> expectedRasterLayer = qgis::make_unique< QgsRasterLayer >( myDataPath + "/control_images" + expectedRaster, "expectedDataset", "gdal" );
+  std::unique_ptr< QgsRasterInterface > expectedInterface( expectedRasterLayer->dataProvider()->clone() );
+  QgsRasterIterator expectedIter( expectedInterface.get() );
+  expectedIter.startRasterRead( 1, expectedRasterLayer->width(), expectedRasterLayer->height(), expectedInterface->extent() );
+
+  //run alg...
+  bool ok = false;
+  QgsProcessingFeedback feedback;
+  QVariantMap results;
+
+  results = alg->run( parameters, *context, &feedback, &ok );
+  QVERIFY( ok );
+
+  //...and check results with expected datasets
+  std::unique_ptr<QgsRasterLayer> outputRaster = qgis::make_unique< QgsRasterLayer >( results.value( QStringLiteral( "OUTPUT" ) ).toString(), "output", "gdal" );
+  std::unique_ptr< QgsRasterInterface > outputInterface( outputRaster->dataProvider()->clone() );
+
+  QCOMPARE( outputRaster->width(), expectedRasterLayer->width() );
+  QCOMPARE( outputRaster->height(), expectedRasterLayer->height() );
+
+  QgsRasterIterator outputIter( outputInterface.get() );
+  outputIter.startRasterRead( 1, outputRaster->width(), outputRaster->height(), outputInterface->extent() );
+  int outputIterLeft = 0;
+  int outputIterTop = 0;
+  int outputIterCols = 0;
+  int outputIterRows = 0;
+  int expectedIterLeft = 0;
+  int expectedIterTop = 0;
+  int expectedIterCols = 0;
+  int expectedIterRows = 0;
+
+  std::unique_ptr< QgsRasterBlock > outputRasterBlock;
+  std::unique_ptr< QgsRasterBlock > expectedRasterBlock;
+
+  while ( outputIter.readNextRasterPart( 1, outputIterCols, outputIterRows, outputRasterBlock, outputIterLeft, outputIterTop ) &&
+          expectedIter.readNextRasterPart( 1, expectedIterCols, expectedIterRows, expectedRasterBlock, expectedIterLeft, expectedIterTop ) )
+  {
+    for ( int row = 0; row < expectedIterRows; row++ )
+    {
+      for ( int column = 0; column < expectedIterCols; column++ )
+      {
+        double expectedValue = expectedRasterBlock->value( row, column );
+        double outputValue = outputRasterBlock->value( row, column );
+        QCOMPARE( outputValue, expectedValue );
+
+        Qgis::DataType outputDataType = outputRasterBlock->dataType();
+        QCOMPARE( outputDataType, Qgis::Int32 );
+      }
+    }
+  }
+}
+
 void TestQgsProcessingAlgs::roundRasterValues_data()
 {
   QTest::addColumn<QString>( "inputRaster" );
@@ -4359,6 +4507,79 @@ void TestQgsProcessingAlgs::exportLayoutPng()
   QVERIFY( ok );
 
   QVERIFY( QFile::exists( outputPdf ) );
+}
+
+void TestQgsProcessingAlgs::exportAtlasLayoutPng()
+{
+  QgsProject p;
+  p.addMapLayers( QList<QgsMapLayer *>() << mPolygonLayer );
+
+  QgsPrintLayout *layout = new QgsPrintLayout( &p );
+  layout->initializeDefaults();
+  layout->setName( QStringLiteral( "my layout" ) );
+
+  QgsLayoutItemMap *map = new QgsLayoutItemMap( layout );
+  map->setBackgroundEnabled( false );
+  map->setFrameEnabled( false );
+  map->attemptSetSceneRect( QRectF( 20, 20, 200, 100 ) );
+  layout->addLayoutItem( map );
+  map->setExtent( mPolygonLayer->extent() );
+
+  p.layoutManager()->addLayout( layout );
+
+  std::unique_ptr< QgsProcessingAlgorithm > alg( QgsApplication::processingRegistry()->createAlgorithmById( QStringLiteral( "native:atlaslayouttoimage" ) ) );
+  QVERIFY( alg != nullptr );
+
+  QDir tempDir( QDir::tempPath() );
+  if ( !tempDir.mkdir( "my_atlas" ) )
+  {
+    QDir dir( QDir::tempPath() + "/my_atlas" );
+    const QStringList files = dir.entryList( QStringList() << "*.*", QDir::Files );
+    for ( const QString file : files )
+      QFile::remove( QDir::tempPath() + "/my_atlas/" + file );
+  }
+
+  QVariantMap parameters;
+  parameters.insert( QStringLiteral( "LAYOUT" ), QStringLiteral( "my layout" ) );
+  parameters.insert( QStringLiteral( "COVERAGE_LAYER" ), QVariant::fromValue( mPolygonLayer ) );
+  parameters.insert( QStringLiteral( "FOLDER" ), QDir::tempPath() + "/my_atlas" );
+  parameters.insert( QStringLiteral( "FILENAME_EXPRESSION" ), QStringLiteral( "'export_'||@atlas_featurenumber" ) );
+  parameters.insert( QStringLiteral( "DPI" ), 96 );
+
+  bool ok = false;
+  std::unique_ptr< QgsProcessingContext > context = qgis::make_unique< QgsProcessingContext >();
+  context->setProject( &p );
+  QgsProcessingFeedback feedback;
+  QVariantMap results;
+  results = alg->run( parameters, *context, &feedback, &ok );
+  QVERIFY( ok );
+
+  QVERIFY( QFile::exists( QDir::tempPath() + "/my_atlas/export_1.png" ) );
+  QVERIFY( QFile::exists( QDir::tempPath() + "/my_atlas/export_10.png" ) );
+  QVERIFY( imageCheck( "export_atlas", QDir::tempPath() + "/my_atlas/export_1.png" ) );
+
+  parameters[QStringLiteral( "FILENAME_EXPRESSION" )] = QStringLiteral( "'custom_'||@atlas_featurenumber" );
+  parameters.insert( QStringLiteral( "LAYERS" ), QVariantList() << QVariant::fromValue( mPointsLayer ) );
+
+  ok = false;
+  results.clear();
+  results = alg->run( parameters, *context, &feedback, &ok );
+  QVERIFY( ok );
+
+  QVERIFY( QFile::exists( QDir::tempPath() + "/my_atlas/custom_1.png" ) );
+  QVERIFY( QFile::exists( QDir::tempPath() + "/my_atlas/custom_10.png" ) );
+  QVERIFY( imageCheck( "export_atlas_custom_layers", QDir::tempPath() + "/my_atlas/custom_1.png" ) );
+}
+
+bool TestQgsProcessingAlgs::imageCheck( const QString &testName, const QString &renderedImage )
+{
+  QgsRenderChecker checker;
+  checker.setControlPathPrefix( QStringLiteral( "processing_algorithm" ) );
+  checker.setControlName( "expected_" + testName );
+  checker.setRenderedImage( renderedImage );
+  checker.setSizeTolerance( 3, 3 );
+  bool equal = checker.compareImages( testName, 500 );
+  return equal;
 }
 
 QGSTEST_MAIN( TestQgsProcessingAlgs )

@@ -110,6 +110,7 @@ class QgsUserProfileManagerWidgetFactory;
 class Qgs3DMapCanvasDockWidget;
 class QgsHandleBadLayersHandler;
 class QgsNetworkAccessManager;
+class QgsGpsConnection;
 
 class QDomDocument;
 class QNetworkReply;
@@ -801,6 +802,14 @@ class APP_EXPORT QgisApp : public QMainWindow, private Ui::MainWindow
     void takeAppScreenShots( const QString &saveDirectory, const int categories = 0 );
 
     QgsLayerTreeRegistryBridge::InsertionPoint layerTreeInsertionPoint() const;
+
+    /**
+     * Sets a GPS \a connection to use within the GPS Panel widget.
+     *
+     * Any existing GPS connection used by the widget will be disconnect and replaced with this connection. The connection
+     * is automatically registered within the QgsApplication::gpsConnectionRegistry().
+     */
+    void setGpsPanelConnection( QgsGpsConnection *connection );
 
   public slots:
     //! save current vector layer
@@ -1855,6 +1864,18 @@ class APP_EXPORT QgisApp : public QMainWindow, private Ui::MainWindow
     //! Enable or disable event tracing (for debugging)
     void toggleEventTracing();
 
+    /**
+     * Enables or disables digitizing with curve for map tool that support this capabilities
+     * \since QGIS 3.16
+     */
+    void enableDigitizeWithCurve( bool enable );
+
+    /**
+     * Enables the action that allows to enable or disable digitizing with curve
+     * \since QGIS 3.16
+     */
+    void enableDigitizeWithCurveAction( bool enable );
+
 #ifdef HAVE_GEOREFERENCER
     void showGeoreferencer();
 #endif
@@ -1966,7 +1987,7 @@ class APP_EXPORT QgisApp : public QMainWindow, private Ui::MainWindow
      * This method will open a dialog so the user can select OGR sublayers to load,
      * and then returns a list of these layers.
      */
-    QList< QgsMapLayer * > askUserForOGRSublayers( QgsVectorLayer *layer );
+    QList< QgsMapLayer * > askUserForOGRSublayers( QgsVectorLayer *layer, const QStringList &subLayers );
 
     /**
      * Add a raster layer to the map (passed in as a ptr).
