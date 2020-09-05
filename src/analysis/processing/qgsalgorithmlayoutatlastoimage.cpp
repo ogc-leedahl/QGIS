@@ -83,8 +83,8 @@ void QgsLayoutAtlasToImageAlgorithm::initAlgorithm( const QVariantMap & )
   addParameter( layersParam.release() );
 
   QStringList imageFormats;
-  const auto supportedImageFormats { QImageWriter::supportedImageFormats() };
-  for ( const auto format : QImageWriter::supportedImageFormats() )
+  const QList<QByteArray> supportedImageFormats { QImageWriter::supportedImageFormats() };
+  for ( const QByteArray &format : supportedImageFormats )
   {
     if ( format == QByteArray( "svg" ) )
       continue;
@@ -124,54 +124,12 @@ QgsLayoutAtlasToImageAlgorithm *QgsLayoutAtlasToImageAlgorithm::createInstance()
 QVariantMap QgsLayoutAtlasToImageAlgorithm::processAlgorithm( const QVariantMap &parameters, QgsProcessingContext &context, QgsProcessingFeedback *feedback )
 {
   // this needs to be done in main thread, layouts are not thread safe
-  QgsPrintLayout *layout = parameterAsLayout( parameters, QStringLiteral( "LAYOUT" ), context );
-  if ( !layout )
+  QgsPrintLayout *l = parameterAsLayout( parameters, QStringLiteral( "LAYOUT" ), context );
+  if ( !l )
     throw QgsProcessingException( QObject::tr( "Cannot find layout with name \"%1\"" ).arg( parameters.value( QStringLiteral( "LAYOUT" ) ).toString() ) );
 
+  std::unique_ptr< QgsPrintLayout > layout( l->clone() );
   QgsLayoutAtlas *atlas = layout->atlas();
-
-  QgsVectorLayer *previousCoverageLayer = atlas->coverageLayer();
-  const bool previousEnabled = atlas->enabled();
-  const QString previousFilenameExpression = atlas->filenameExpression();
-  const QString previousFilterExpression = atlas->filterExpression();
-  const bool previousSortFeatures = atlas->sortFeatures();
-  const bool previousSortAscending = atlas->sortAscending();
-  const QString previousSortExpression = atlas->sortExpression();
-  QStringList previousMapItemLayersReset;
-
-  auto restoreAtlas = [ layout, atlas,
-                                previousCoverageLayer,
-                                previousEnabled,
-                                previousFilenameExpression,
-                                previousFilterExpression,
-                                previousSortFeatures,
-                                previousSortAscending,
-                                previousSortExpression,
-                                previousMapItemLayersReset ]()
-  {
-    QString error;
-    atlas->setEnabled( previousEnabled );
-    atlas->setCoverageLayer( previousCoverageLayer );
-    atlas->setFilenameExpression( previousFilenameExpression, error );
-    atlas->setFilterExpression( previousFilterExpression, error );
-    atlas->setSortFeatures( previousSortFeatures );
-    atlas->setSortAscending( previousSortAscending );
-    atlas->setSortExpression( previousSortExpression );
-
-    if ( previousMapItemLayersReset.size() > 0 )
-    {
-      const QList<QGraphicsItem *> items = layout->items();
-      for ( QGraphicsItem *graphicsItem : items )
-      {
-        QgsLayoutItem *item = dynamic_cast<QgsLayoutItem *>( graphicsItem );
-        QgsLayoutItemMap *map = dynamic_cast<QgsLayoutItemMap *>( item );
-        if ( map && previousMapItemLayersReset.contains( map->uuid() ) )
-        {
-          map->setLayers( QList<QgsMapLayer *>() );
-        }
-      }
-    }
-  };
 
   QString expression, error;
   QgsVectorLayer *layer = parameterAsVectorLayer( parameters, QStringLiteral( "COVERAGE_LAYER" ), context );
@@ -184,7 +142,6 @@ QVariantMap QgsLayoutAtlasToImageAlgorithm::processAlgorithm( const QVariantMap 
     atlas->setFilterExpression( expression, error );
     if ( !expression.isEmpty() && !error.isEmpty() )
     {
-      restoreAtlas();
       throw QgsProcessingException( QObject::tr( "Error setting atlas filter expression" ) );
     }
     error.clear();
@@ -211,7 +168,6 @@ QVariantMap QgsLayoutAtlasToImageAlgorithm::processAlgorithm( const QVariantMap 
   atlas->setFilenameExpression( expression, error );
   if ( !error.isEmpty() )
   {
-    restoreAtlas();
     throw QgsProcessingException( QObject::tr( "Error setting atlas filename expression" ) );
   }
 
@@ -219,8 +175,8 @@ QVariantMap QgsLayoutAtlasToImageAlgorithm::processAlgorithm( const QVariantMap 
   QString fileName = QDir( directory ).filePath( QStringLiteral( "atlas" ) );
 
   QStringList imageFormats;
-  const auto supportedImageFormats { QImageWriter::supportedImageFormats() };
-  for ( const auto format : QImageWriter::supportedImageFormats() )
+  const QList<QByteArray> supportedImageFormats { QImageWriter::supportedImageFormats() };
+  for ( const QByteArray &format : supportedImageFormats )
   {
     if ( format == QByteArray( "svg" ) )
       continue;
@@ -229,7 +185,7 @@ QVariantMap QgsLayoutAtlasToImageAlgorithm::processAlgorithm( const QVariantMap 
   int idx = parameterAsEnum( parameters, QStringLiteral( "EXTENSION" ), context );
   QString extension = '.' + imageFormats.at( idx );
 
-  QgsLayoutExporter exporter( layout );
+  QgsLayoutExporter exporter( layout.get() );
   QgsLayoutExporter::ImageExportSettings settings;
 
   if ( parameters.value( QStringLiteral( "DPI" ) ).isValid() )
@@ -255,16 +211,13 @@ QVariantMap QgsLayoutAtlasToImageAlgorithm::processAlgorithm( const QVariantMap 
       QgsLayoutItemMap *map = dynamic_cast<QgsLayoutItemMap *>( item );
       if ( map && !map->followVisibilityPreset() && !map->keepLayerSet() )
       {
-        previousMapItemLayersReset << map->uuid();
+        map->setKeepLayerSet( true );
         map->setLayers( layers );
       }
     }
   }
 
-  QgsLayoutExporter::ExportResult result = exporter.exportToImage( atlas, fileName, extension, settings, error, feedback );
-  restoreAtlas();
-
-  switch ( result )
+  switch ( exporter.exportToImage( atlas, fileName, extension, settings, error, feedback ) )
   {
     case QgsLayoutExporter::Success:
     {

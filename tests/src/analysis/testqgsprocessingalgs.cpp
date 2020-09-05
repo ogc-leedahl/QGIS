@@ -54,6 +54,7 @@
 #include "qgsbookmarkmanager.h"
 #include "qgsexpressioncontextutils.h"
 #include "qgsrenderchecker.h"
+#include "qgsrelationmanager.h"
 
 class TestQgsProcessingAlgs: public QObject
 {
@@ -84,6 +85,7 @@ class TestQgsProcessingAlgs: public QObject
     void categorizeByStyle();
     void extractBinary();
     void createDirectory();
+    void flattenRelations();
 
     void polygonsToLines_data();
     void polygonsToLines();
@@ -142,6 +144,7 @@ class TestQgsProcessingAlgs: public QObject
     void setProjectVariable();
     void exportLayoutPdf();
     void exportLayoutPng();
+    void exportAtlasLayoutPdf();
     void exportAtlasLayoutPng();
 
   private:
@@ -912,6 +915,105 @@ void TestQgsProcessingAlgs::createDirectory()
 
   QVERIFY( QFile::exists( outputPath ) );
   QVERIFY( QFileInfo( outputPath ).isDir() );
+}
+
+void TestQgsProcessingAlgs::flattenRelations()
+{
+  std::unique_ptr< QgsProcessingAlgorithm > alg( QgsApplication::processingRegistry()->createAlgorithmById( QStringLiteral( "native:flattenrelationships" ) ) );
+  QVERIFY( alg != nullptr );
+
+  std::unique_ptr< QgsProcessingContext > context = qgis::make_unique< QgsProcessingContext >();
+  QgsProject p;
+  context->setProject( &p );
+
+  QString dataDir( TEST_DATA_DIR ); //defined in CmakeLists.txt
+
+  QgsProcessingFeedback feedback;
+
+  QgsVectorLayer *parent = new QgsVectorLayer( dataDir + QStringLiteral( "/points_relations.shp" ), QStringLiteral( "parent" ) );
+  QgsVectorLayer *child = new QgsVectorLayer( dataDir + QStringLiteral( "/points.shp" ), QStringLiteral( "child" ) );
+  QVERIFY( parent->isValid() );
+  QVERIFY( child->isValid() );
+  p.addMapLayer( parent );
+  p.addMapLayer( child );
+
+  QVariantMap parameters;
+  parameters.insert( QStringLiteral( "INPUT" ), parent->id() );
+  parameters.insert( QStringLiteral( "OUTPUT" ), QgsProcessing::TEMPORARY_OUTPUT );
+
+  bool ok = false;
+  QVariantMap results = alg->run( parameters, *context, &feedback, &ok );
+  // no relations!
+  QVERIFY( !ok );
+
+  // create relationship
+  QgsRelationContext relationContext( &p );
+  QgsRelation relation( relationContext );
+  relation.setId( QStringLiteral( "rel" ) );
+  relation.setName( QStringLiteral( "my relation" ) );
+  relation.setReferencedLayer( parent->id() );
+  relation.setReferencingLayer( child->id() );
+  relation.addFieldPair( QStringLiteral( "class" ), QStringLiteral( "class" ) );
+  QVERIFY( relation.isValid() );
+  p.relationManager()->addRelation( relation );
+
+  results = alg->run( parameters, *context, &feedback, &ok );
+  // one relation - should be ok!
+  QVERIFY( ok );
+
+  QgsVectorLayer *outputLayer = qobject_cast< QgsVectorLayer * >( context->getMapLayer( results.value( QStringLiteral( "OUTPUT" ) ).toString() ) );
+  QVERIFY( outputLayer );
+  QCOMPARE( outputLayer->fields().count(), 8 );
+  QCOMPARE( outputLayer->fields().at( 0 ).name(), QStringLiteral( "Class" ) );
+  QCOMPARE( outputLayer->fields().at( 1 ).name(), QStringLiteral( "id" ) );
+  QCOMPARE( outputLayer->fields().at( 2 ).name(), QStringLiteral( "Class_2" ) );
+  QCOMPARE( outputLayer->fields().at( 3 ).name(), QStringLiteral( "Heading" ) );
+  QCOMPARE( outputLayer->fields().at( 4 ).name(), QStringLiteral( "Importance" ) );
+  QCOMPARE( outputLayer->fields().at( 5 ).name(), QStringLiteral( "Pilots" ) );
+  QCOMPARE( outputLayer->fields().at( 6 ).name(), QStringLiteral( "Cabin Crew" ) );
+  QCOMPARE( outputLayer->fields().at( 7 ).name(), QStringLiteral( "Staff" ) );
+
+  QCOMPARE( outputLayer->featureCount(), 17L );
+
+  QSet< QgsAttributes > res;
+  QgsFeature f;
+  QgsFeatureIterator it = outputLayer->getFeatures();
+  while ( it.nextFeature( f ) )
+  {
+    QgsAttributes created = f.attributes();
+    created << f.geometry().asWkt( 0 );
+    res.insert( created );
+  }
+
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "B52" ) << 3 << QStringLiteral( "B52" ) << 0 << 10.0 << 2 << 1 << 3 << QStringLiteral( "Point (-103 23)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "B52" ) << 3 << QStringLiteral( "B52" ) << 12 << 10.0 << 1 << 1 << 2 << QStringLiteral( "Point (-103 23)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "B52" ) << 3 << QStringLiteral( "B52" ) << 34 << 10.0 << 2 << 1 << 3 << QStringLiteral( "Point (-103 23)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "B52" ) << 3 << QStringLiteral( "B52" ) << 80 << 10.0 << 2 << 1 << 3 << QStringLiteral( "Point (-103 23)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Jet" ) << 1 << QStringLiteral( "Jet" ) << 90 << 3.0 << 2 << 0 << 2 << QStringLiteral( "Point (-117 37)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Jet" ) << 1 << QStringLiteral( "Jet" ) << 85 << 3.0 << 1 << 1 << 2 << QStringLiteral( "Point (-117 37)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Jet" ) << 1 << QStringLiteral( "Jet" ) << 95 << 3.0 << 1 << 1 << 2 << QStringLiteral( "Point (-117 37)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Jet" ) << 1 << QStringLiteral( "Jet" ) << 90 << 3.0 << 1 << 0 << 1 << QStringLiteral( "Point (-117 37)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Jet" ) << 1 << QStringLiteral( "Jet" ) << 160 << 4.0 << 2 << 0 << 2 << QStringLiteral( "Point (-117 37)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Jet" ) << 1 << QStringLiteral( "Jet" ) << 180 << 3.0 << 1 << 0 << 1 << QStringLiteral( "Point (-117 37)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Jet" ) << 1 << QStringLiteral( "Jet" ) << 140 << 10.0 << 1 << 1 << 2 << QStringLiteral( "Point (-117 37)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Jet" ) << 1 << QStringLiteral( "Jet" ) << 100 << 20.0 << 3 << 0 << 3 << QStringLiteral( "Point (-117 37)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Biplane" ) << 2 << QStringLiteral( "Biplane" ) << 0 << 1.0 << 3 << 3 << 6 << QStringLiteral( "Point (-83 34)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Biplane" ) << 2 << QStringLiteral( "Biplane" ) << 340 << 1.0 << 3 << 3 << 6 << QStringLiteral( "Point (-83 34)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Biplane" ) << 2 << QStringLiteral( "Biplane" ) << 300 << 1.0 << 3 << 2 << 5 << QStringLiteral( "Point (-83 34)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Biplane" ) << 2 << QStringLiteral( "Biplane" ) << 270 << 1.0 << 3 << 4 << 7 << QStringLiteral( "Point (-83 34)" ) ) );
+  QVERIFY( res.contains( QgsAttributes() << QStringLiteral( "Biplane" ) << 2 << QStringLiteral( "Biplane" ) << 240 << 1.0 << 3 << 2 << 5 << QStringLiteral( "Point (-83 34)" ) ) );
+
+  QgsRelation relation2( relationContext );
+  relation2.setId( QStringLiteral( "rel2" ) );
+  relation2.setName( QStringLiteral( "my relation2" ) );
+  relation2.setReferencedLayer( parent->id() );
+  relation2.setReferencingLayer( child->id() );
+  relation2.addFieldPair( QStringLiteral( "class" ), QStringLiteral( "class" ) );
+  QVERIFY( relation2.isValid() );
+  p.relationManager()->addRelation( relation2 );
+  results = alg->run( parameters, *context, &feedback, &ok );
+  // two relations - should not run
+  QVERIFY( !ok );
 }
 
 
@@ -4509,10 +4611,11 @@ void TestQgsProcessingAlgs::exportLayoutPng()
   QVERIFY( QFile::exists( outputPdf ) );
 }
 
-void TestQgsProcessingAlgs::exportAtlasLayoutPng()
+void TestQgsProcessingAlgs::exportAtlasLayoutPdf()
 {
+  QgsMapLayer *polygonLayer = mPolygonLayer->clone();
   QgsProject p;
-  p.addMapLayers( QList<QgsMapLayer *>() << mPolygonLayer );
+  p.addMapLayers( QList<QgsMapLayer *>() << polygonLayer );
 
   QgsPrintLayout *layout = new QgsPrintLayout( &p );
   layout->initializeDefaults();
@@ -4523,7 +4626,50 @@ void TestQgsProcessingAlgs::exportAtlasLayoutPng()
   map->setFrameEnabled( false );
   map->attemptSetSceneRect( QRectF( 20, 20, 200, 100 ) );
   layout->addLayoutItem( map );
-  map->setExtent( mPolygonLayer->extent() );
+  map->setExtent( polygonLayer->extent() );
+
+  p.layoutManager()->addLayout( layout );
+
+  std::unique_ptr< QgsProcessingAlgorithm > alg( QgsApplication::processingRegistry()->createAlgorithmById( QStringLiteral( "native:atlaslayouttopdf" ) ) );
+  QVERIFY( alg != nullptr );
+
+  const QString outputPdf = QDir::tempPath() + "/my_atlas_layout.pdf";
+  if ( QFile::exists( outputPdf ) )
+    QFile::remove( outputPdf );
+
+  QVariantMap parameters;
+  parameters.insert( QStringLiteral( "LAYOUT" ), QStringLiteral( "my layout" ) );
+  parameters.insert( QStringLiteral( "COVERAGE_LAYER" ), QVariant::fromValue( polygonLayer ) );
+  parameters.insert( QStringLiteral( "OUTPUT" ), outputPdf );
+  parameters.insert( QStringLiteral( "DPI" ), 96 );
+
+  bool ok = false;
+  std::unique_ptr< QgsProcessingContext > context = qgis::make_unique< QgsProcessingContext >();
+  context->setProject( &p );
+  QgsProcessingFeedback feedback;
+  QVariantMap results;
+  results = alg->run( parameters, *context, &feedback, &ok );
+  QVERIFY( ok );
+
+  QVERIFY( QFile::exists( outputPdf ) );
+}
+
+void TestQgsProcessingAlgs::exportAtlasLayoutPng()
+{
+  QgsMapLayer *polygonLayer = mPolygonLayer->clone();
+  QgsProject p;
+  p.addMapLayers( QList<QgsMapLayer *>() << polygonLayer );
+
+  QgsPrintLayout *layout = new QgsPrintLayout( &p );
+  layout->initializeDefaults();
+  layout->setName( QStringLiteral( "my layout" ) );
+
+  QgsLayoutItemMap *map = new QgsLayoutItemMap( layout );
+  map->setBackgroundEnabled( false );
+  map->setFrameEnabled( false );
+  map->attemptSetSceneRect( QRectF( 20, 20, 200, 100 ) );
+  layout->addLayoutItem( map );
+  map->setExtent( polygonLayer->extent() );
 
   p.layoutManager()->addLayout( layout );
 
@@ -4535,13 +4681,13 @@ void TestQgsProcessingAlgs::exportAtlasLayoutPng()
   {
     QDir dir( QDir::tempPath() + "/my_atlas" );
     const QStringList files = dir.entryList( QStringList() << "*.*", QDir::Files );
-    for ( const QString file : files )
+    for ( const QString &file : files )
       QFile::remove( QDir::tempPath() + "/my_atlas/" + file );
   }
 
   QVariantMap parameters;
   parameters.insert( QStringLiteral( "LAYOUT" ), QStringLiteral( "my layout" ) );
-  parameters.insert( QStringLiteral( "COVERAGE_LAYER" ), QVariant::fromValue( mPolygonLayer ) );
+  parameters.insert( QStringLiteral( "COVERAGE_LAYER" ), QVariant::fromValue( polygonLayer ) );
   parameters.insert( QStringLiteral( "FOLDER" ), QDir::tempPath() + "/my_atlas" );
   parameters.insert( QStringLiteral( "FILENAME_EXPRESSION" ), QStringLiteral( "'export_'||@atlas_featurenumber" ) );
   parameters.insert( QStringLiteral( "DPI" ), 96 );

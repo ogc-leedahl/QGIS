@@ -48,7 +48,7 @@ Following a summary of the required dependencies for building:
 
 Required build tools:
 
-* CMake >= 3.0.0
+* CMake >= 3.10.0
 * Flex >= 2.5.6
 * Bison >= 2.4
 * Python 3
@@ -1227,7 +1227,7 @@ After the initial Terminal configure, you can use ccmake to make further changes
 
 ```bash
     cd build
-    ccmake ..
+    ccmake ../QGIS
 ```
 
 ## 5.6. Building

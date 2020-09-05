@@ -399,9 +399,9 @@ void MDAL::SelafinFile::populateDataset( MDAL::Mesh *mesh, std::shared_ptr<MDAL:
   }
 
   // now calculate statistics
-  for ( const std::shared_ptr<DatasetGroup> group : groupsInOrder )
+  for ( const std::shared_ptr<DatasetGroup> &group : groupsInOrder )
   {
-    for ( const std::shared_ptr<Dataset> dataset : group->datasets )
+    for ( const std::shared_ptr<Dataset> &dataset : group->datasets )
     {
       MDAL::Statistics stats = MDAL::calculateStatistics( dataset );
       dataset->setStatistics( stats );
@@ -412,7 +412,7 @@ void MDAL::SelafinFile::populateDataset( MDAL::Mesh *mesh, std::shared_ptr<MDAL:
   }
 
   // As everything seems to be ok (no exception thrown), push the groups in the mesh
-  for ( const std::shared_ptr<DatasetGroup> group : groupsInOrder )
+  for ( const std::shared_ptr<DatasetGroup> &group : groupsInOrder )
     mesh->datasetGroups.push_back( group );
 }
 
@@ -771,6 +771,15 @@ MDAL::BBox MDAL::MeshSelafin::extent() const
     return mExtent;
   calculateExtent();
   return mExtent;
+}
+
+void MDAL::MeshSelafin::closeSource()
+{
+  if ( mReader )
+  {
+    mReader->mIn.close();
+    mReader->mParsed = false;
+  }
 }
 
 void MDAL::MeshSelafin::calculateExtent() const
@@ -1274,6 +1283,10 @@ bool MDAL::SelafinFile::addDatasetGroup( MDAL::DatasetGroup *datasetGroup )
 
   out.close();
   mIn.close();
+
+  // if the uri of the dataset group is the same than the file name, be sure to close it before replace it
+  if ( datasetGroup->uri() == mFileName )
+    datasetGroup->mesh()->closeSource();
 
   if ( std::remove( mFileName.c_str() ) != 0 )
   {

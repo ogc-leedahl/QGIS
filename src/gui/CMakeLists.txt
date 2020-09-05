@@ -74,7 +74,6 @@ SET(QGIS_GUI_SRCS
   callouts/qgscalloutwidget.cpp
 
   attributeformconfig/qgsattributeformcontaineredit.cpp
-  attributeformconfig/qgsattributerelationedit.cpp
   attributeformconfig/qgsattributetypedialog.cpp
   attributeformconfig/qgsattributewidgetedit.cpp
 
@@ -189,6 +188,7 @@ SET(QGIS_GUI_SRCS
   labeling/qgslabelengineconfigdialog.cpp
   labeling/qgslabelinggui.cpp
   labeling/qgslabelingwidget.cpp
+  labeling/qgslabellineanchorwidget.cpp
   labeling/qgslabelobstaclesettingswidget.cpp
   labeling/qgslabelsettingswidgetbase.cpp
   labeling/qgsrulebasedlabelingwidget.cpp
@@ -803,7 +803,6 @@ SET(QGIS_GUI_HDRS
   qgswindowmanagerinterface.h
 
   attributeformconfig/qgsattributeformcontaineredit.h
-  attributeformconfig/qgsattributerelationedit.h
   attributeformconfig/qgsattributetypedialog.h
   attributeformconfig/qgsattributewidgetedit.h
 
@@ -926,6 +925,7 @@ SET(QGIS_GUI_HDRS
   labeling/qgslabelengineconfigdialog.h
   labeling/qgslabelinggui.h
   labeling/qgslabelingwidget.h
+  labeling/qgslabellineanchorwidget.h
   labeling/qgslabelobstaclesettingswidget.h
   labeling/qgslabelsettingswidgetbase.h
   labeling/qgsrulebasedlabelingwidget.h

@@ -489,7 +489,7 @@ class CORE_EXPORT QgsCoordinateReferenceSystem
      * ESRI::[WKT string] (directly or in a file), "IGNF:xxx"
      *
      * For more details on supported formats see OGRSpatialReference::SetFromUserInput()
-     * ( http://www.gdal.org/ogr/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796 )
+     * ( https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796 )
      * \param definition A String containing a coordinate reference system definition.
      * \returns TRUE on success else FALSE
      * \note this function generates a WKT string using OSRSetFromUserInput() and
@@ -656,7 +656,7 @@ class CORE_EXPORT QgsCoordinateReferenceSystem
 
     /**
      * Returns the ellipsoid acronym for the ellipsoid used by the CRS.
-     * \returns the official authority:code identifier for the ellipoid, or PARAMETER:MAJOR:MINOR for custom ellipsoids
+     * \returns the official authority:code identifier for the ellipsoid, or PARAMETER:MAJOR:MINOR for custom ellipsoids
      * \note an empty string will be returned if the ellipsoidAcronym is not available for the CRS
      * \see projectionAcronym()
      */

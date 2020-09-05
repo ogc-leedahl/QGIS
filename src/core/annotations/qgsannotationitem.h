@@ -46,11 +46,15 @@ class CORE_EXPORT QgsAnnotationItem
     }
     else if ( sipCpp->type() == QLatin1String( "linestring" ) )
     {
-      sipType = sipType_QgsAnnotationLineStringItem;
+      sipType = sipType_QgsAnnotationLineItem;
     }
     else if ( sipCpp->type() == QLatin1String( "polygon" ) )
     {
       sipType = sipType_QgsAnnotationPolygonItem;
+    }
+    else if ( sipCpp->type() == QLatin1String( "pointtext" ) )
+    {
+      sipType = sipType_QgsAnnotationPointTextItem;
     }
     else
     {
@@ -93,7 +97,7 @@ class CORE_EXPORT QgsAnnotationItem
     /**
      * Renders the item to the specified render \a context.
      *
-     * The \a feedback argument can be used to detect render cancelations during expensive
+     * The \a feedback argument can be used to detect render cancellations during expensive
      * render operations.
      */
     virtual void render( QgsRenderContext &context, QgsFeedback *feedback ) = 0;

@@ -125,13 +125,13 @@ SET(QGIS_CORE_SRCS
   auth/qgsauthmethodregistry.cpp
 
   annotations/qgsannotation.cpp
-  annotations/qgsannotationitem.cpp
   annotations/qgsannotationitemregistry.cpp
   annotations/qgsannotationlayer.cpp
   annotations/qgsannotationlayerrenderer.cpp
-  annotations/qgsannotationlinestringitem.cpp
+  annotations/qgsannotationlineitem.cpp
   annotations/qgsannotationmarkeritem.cpp
   annotations/qgsannotationmanager.cpp
+  annotations/qgsannotationpointtextitem.cpp
   annotations/qgsannotationpolygonitem.cpp
   annotations/qgshtmlannotation.cpp
   annotations/qgssvgannotation.cpp
@@ -620,6 +620,7 @@ SET(QGIS_CORE_SRCS
   labeling/qgslabelfeature.cpp
   labeling/qgslabelingengine.cpp
   labeling/qgslabelingenginesettings.cpp
+  labeling/qgslabellinesettings.cpp
   labeling/qgslabelobstaclesettings.cpp
   labeling/qgslabelsearchtree.cpp
   labeling/qgslabelsink.cpp
@@ -1056,9 +1057,10 @@ SET(QGIS_CORE_HDRS
   annotations/qgsannotationitemregistry.h
   annotations/qgsannotationlayer.h
   annotations/qgsannotationlayerrenderer.h
-  annotations/qgsannotationlinestringitem.h
+  annotations/qgsannotationlineitem.h
   annotations/qgsannotationmarkeritem.h
   annotations/qgsannotationmanager.h
+  annotations/qgsannotationpointtextitem.h
   annotations/qgsannotationpolygonitem.h
   annotations/qgsannotationregistry.h
   annotations/qgshtmlannotation.h
@@ -1166,6 +1168,7 @@ SET(QGIS_CORE_HDRS
   labeling/qgslabeling.h
   labeling/qgslabelingengine.h
   labeling/qgslabelingenginesettings.h
+  labeling/qgslabellinesettings.h
   labeling/qgslabelobstaclesettings.h
   labeling/qgslabelsearchtree.h
   labeling/qgslabelthinningsettings.h

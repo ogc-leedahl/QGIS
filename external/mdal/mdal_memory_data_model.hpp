@@ -21,8 +21,8 @@ namespace MDAL
 
   typedef struct
   {
-    double x;
-    double y;
+    double x = std::numeric_limits<double>::quiet_NaN();
+    double y = std::numeric_limits<double>::quiet_NaN();
     double z = 0.0; // Bed elevation
 
   } Vertex;
@@ -199,6 +199,10 @@ namespace MDAL
       size_t edgesCount() const override {return mEdges.size();}
       size_t facesCount() const override {return mFaces.size();}
       BBox extent() const override;
+      void addVertices( size_t vertexCount, double *coordinates ) override;
+      void addFaces( size_t faceCount, size_t driverMaxVerticesPerFace, int *faceSizes, int *vertexIndices ) override;
+
+      bool isEditable() const override {return true;}
 
     private:
       BBox mExtent;
