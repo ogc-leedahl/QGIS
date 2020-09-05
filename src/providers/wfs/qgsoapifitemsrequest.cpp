@@ -88,7 +88,7 @@ void QgsOapifItemsRequest::processReply()
       qDebug() << "QgsOapifItemsRequest::processReply - The signature is valid.";
       utf8Text = jws.message();
       buffer = utf8Text.toUtf8();
-      //qDebug() << "QgsOapifItemsRequest::processReply - The message body is:\n" << utf8Text;
+      qDebug() << "QgsOapifItemsRequest::processReply - The message body is:\n" << utf8Text;
 
     } else {
       mErrorCode = QgsBaseNetworkRequest::ApplicationLevelError;
