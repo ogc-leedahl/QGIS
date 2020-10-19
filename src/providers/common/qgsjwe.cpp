@@ -159,6 +159,8 @@ bool QgsJwe::verifyHMAC(const QString &algorithm) {
     auto cipherText = QByteArray::fromBase64(mParts[3].toUtf8(), QByteArray::Base64UrlEncoding);
     auto authTag = QByteArray::fromBase64(mParts[4].toUtf8(), QByteArray::Base64UrlEncoding);
 
+    qDebug("QgsJwe::verifyHMAC - JWE Header: " + QByteArray::fromBase64(aad, QByteArray::Base64UrlEncoding));
+
     QByteArray al;
     al.reserve(8);
     QDataStream stream(&al, QIODevice::WriteOnly);
@@ -196,6 +198,7 @@ QString QgsJwe::errorMessageWithReason( const QString &reason )
  */
 void QgsJwe::readKey() {
 
+  qDebug("QgsJwe::readKey - Key Response: " + mResponse);
   if ( mErrorCode == ErrorCode::NoError )
   {
     auto document = QJsonDocument::fromJson(mResponse);
